@@ -1,0 +1,8 @@
+-- Datos de desarrollo local (`supabase db reset`).
+--
+-- Reglas:
+--   * Nunca datos reales de familias, personas cuidadas o salud.
+--   * Solo lo mínimo para poder desarrollar/probar contra un estado no vacío.
+--
+-- Vacío por ahora: T1 solo deja la infraestructura lista. Los seeds de F1 (familias/usuarios)
+-- se agregan junto con las migraciones de esas features.

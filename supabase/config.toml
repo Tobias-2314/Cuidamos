@@ -1,23 +1,65 @@
 # Supabase local config — proyecto Cuidamos
-# Se completa con `npx supabase init` al arrancar el entorno local.
+# Generado con `supabase init` (CLI 2.x) y adaptado al proyecto.
+# Referencia completa: https://supabase.com/docs/guides/local-development/cli/config
+#
+# Este archivo define el entorno LOCAL (dev en la máquina del desarrollador).
+# Los entornos staging y prod-cerrado viven en Supabase Cloud y NO se configuran acá:
+# sus URLs/keys se inyectan por variables de entorno (ver .env.example y README).
 
 project_id = "cuidamos"
 
 [api]
 enabled = true
 port = 54321
-schemas = ["public", "storage"]
+# public: tablas/vistas de la app. graphql_public: requerido por el cliente supabase-js.
+schemas = ["public", "graphql_public"]
 extra_search_path = ["public", "extensions"]
+# Límite de filas por respuesta — evita payloads gigantes por error o abuso.
 max_rows = 1000
+
+[api.tls]
+enabled = false
 
 [db]
 port = 54322
 shadow_port = 54320
-major_version = 15
+health_timeout = "2m"
+# Debe coincidir con la versión de Postgres del proyecto remoto (dev/staging/prod-cerrado).
+major_version = 17
+
+[db.pooler]
+enabled = false
+
+[db.migrations]
+# Las migraciones en supabase/migrations/*.sql son la única fuente de verdad del esquema.
+# Se aplican con `supabase db push` (remoto) o `supabase db reset` (local).
+enabled = true
+schema_paths = []
+
+[db.seed]
+# Datos de ejemplo NO sensibles para desarrollo local. Nunca datos reales de salud/familias.
+enabled = true
+sql_paths = ["./seed.sql"]
+
+[realtime]
+enabled = true
 
 [studio]
 enabled = true
 port = 54323
+api_url = "http://127.0.0.1"
+
+[local_smtp]
+# Servidor de email de prueba: no envía correos reales, solo los captura para inspección local.
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[storage.s3_protocol]
+enabled = true
 
 [auth]
 enabled = true
@@ -25,11 +67,33 @@ site_url = "http://localhost:8081"
 additional_redirect_urls = ["exp://localhost:8081"]
 jwt_expiry = 3600
 enable_signup = true
+enable_anonymous_sign_ins = false
+minimum_password_length = 8
 
 [auth.email]
 enable_signup = true
+# Desactivado en local para agilizar el desarrollo. En staging/prod-cerrado debe ir en true.
 enable_confirmations = false
 
-[storage]
+[auth.sms]
+enable_signup = false
+
+[auth.mfa]
+max_enrolled_factors = 10
+
+[auth.mfa.totp]
+enroll_enabled = false
+verify_enabled = false
+
+[auth.mfa.phone]
+enroll_enabled = false
+verify_enabled = false
+
+[edge_runtime]
 enabled = true
-file_size_limit = "50MiB"
+policy = "per_worker"
+inspector_port = 8083
+deno_version = 2
+
+[analytics]
+enabled = false

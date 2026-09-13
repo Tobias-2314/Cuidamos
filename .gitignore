@@ -16,6 +16,8 @@ web-build/
 .env
 .env.*
 !.env.example
+!.env.staging.example
+!.env.production.example
 
 # supabase
 supabase/.branches/
