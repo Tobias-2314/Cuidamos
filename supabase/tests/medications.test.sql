@@ -210,9 +210,43 @@ begin
       null; -- esperado: RLS bloqueó el insert.
   end;
 
+  -- 11) PGM-32: RPCs get_medications_for_family/create_medication_log (ver
+  --     20260913241500_medications_rpc.sql) -- devuelven texto plano ya descifrado y
+  --     siguen sujetas a las mismas policies de RLS que el resto de este test.
+  select count(*) into matched
+  from public.get_medications_for_family(family_a)
+  where id = med_a and name = plain_name and dose = plain_dose;
+  if matched <> 1 then
+    raise exception 'FALLO RPC: get_medications_for_family(family_a) no devolvió med_a con name/dose descifrados (% filas)', matched;
+  end if;
+
+  select count(*) into matched from public.get_medications_for_family(family_b);
+  if matched <> 0 then
+    raise exception 'FALLO RLS vía RPC: get_medications_for_family(family_b) devolvió filas de otra familia a user_a (% filas)', matched;
+  end if;
+
+  select id, note into new_log_id, decrypted_note
+  from public.create_medication_log(med_a, now(), 'tomado por RPC, sin efectos');
+  if new_log_id is null or decrypted_note is distinct from 'tomado por RPC, sin efectos' then
+    raise exception 'FALLO RPC: create_medication_log no devolvió un log con note en texto plano (id: %, note: %)', new_log_id, decrypted_note;
+  end if;
+
+  perform 1 from medication_logs where id = new_log_id and taken_by = user_a;
+  if not found then
+    raise exception 'FALLO RPC: create_medication_log no fijó taken_by = auth.uid() (user_a)';
+  end if;
+
+  begin
+    perform public.create_medication_log(med_b, now(), 'intento sobre medicamento ajeno');
+    raise exception 'FALLO RLS vía RPC: create_medication_log pudo insertar un log sobre un medicamento de la Familia B';
+  exception
+    when insufficient_privilege then
+      null; -- esperado: RLS (security invoker) bloqueó el insert igual que un insert directo.
+  end;
+
   raise notice 'PGM-30 medications/medication_logs smoke test: OK (aislamiento RLS, cifrado y reparto de registro de tomas verificados)';
 
-  -- 11) Limpieza del fixture (camino feliz): volvemos a un rol que bypassea RLS.
+  -- 12) Limpieza del fixture (camino feliz): volvemos a un rol que bypassea RLS.
   reset role;
   delete from medication_logs where medication_id in (med_a, med_b);
   delete from medications where id in (med_a, med_b);
