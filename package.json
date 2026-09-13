@@ -20,7 +20,8 @@
     "db:types": "supabase gen types typescript --local > src/lib/database.types.ts",
     "test:rls": "supabase db query --local -f supabase/tests/rls_isolation.test.sql",
     "test:encryption": "supabase db query --local -f supabase/tests/encryption.test.sql",
-    "test:cared-persons": "supabase db query --local -f supabase/tests/cared_persons.test.sql"
+    "test:cared-persons": "supabase db query --local -f supabase/tests/cared_persons.test.sql",
+    "test:shifts": "supabase db query --local -f supabase/tests/shifts.test.sql"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
