@@ -119,6 +119,58 @@ Cada entorno tiene su propio `.env.<entorno>` (nunca commiteado) basado en la pl
 5. En prod-cerrado, revisar que `auth.email.enable_confirmations` esté en `true` (a diferencia de dev) antes de invitar familias reales.
 6. Setear `app.settings.encryption_key` (clave de cifrado en reposo, PGM-3) en cada proyecto Cloud con un valor generado criptográficamente (ej. `openssl rand -base64 32`), guardado solo en el gestor de secretos de CI/CD — ver "Cifrado en reposo" arriba. Verificar ANTES de invitar familias reales a prod-cerrado.
 
+## Builds (EAS Build)
+
+Los builds de Android (APK de pruebas y AAB para Play Store) se generan con **EAS Build**,
+el servicio de build gestionado de Expo — no hay Docker/CI propio para esto. La config vive
+en `eas.json` (raíz del repo), con tres perfiles:
+
+| Perfil | Salida | Distribución | Entorno de datos | Uso |
+|---|---|---|---|---|
+| `development` | APK con Expo Dev Client | `internal` | local (Docker, vía Metro) | Iterar rápido con dev client en un dispositivo/emulador real |
+| `preview` | APK | `internal` | staging (`cuidamos-staging`) | Pruebas internas/cerradas antes de la beta |
+| `production` | AAB firmado | store | prod-cerrado (`cuidamos-prod`) | Publicación en Play Console (track de pruebas cerradas) |
+
+El CLI de EAS (`eas-cli`) está pineado como **devDependency** del repo (no instalado global)
+para que todos —y el futuro CI— usen exactamente la misma versión; se invoca con `npx eas-cli`
+o vía los scripts de npm de abajo. `eas.json` además fija `cli.version` (`>= 24.3.0`) para que
+el comando falle rápido si alguien corre una versión de EAS CLI más vieja e incompatible.
+
+**Variables de entorno por perfil:** cada perfil declara `"environment": "development" | "preview" | "production"`
+en vez de valores literales en `eas.json` — apunta a las variables gestionadas en el dashboard
+de EAS (`eas env:create` / EAS Secrets), nunca a un valor hardcodeado en el repo. Esto es
+consistente con el resto del proyecto: `EXPO_PUBLIC_SUPABASE_URL` y `EXPO_PUBLIC_SUPABASE_ANON_KEY`
+de staging/prod-cerrado solo existen como secreto en EAS, nunca en un archivo versionado.
+El perfil `development` casi no depende de esto en la práctica: con `developmentClient: true`
+el JS lo sigue sirviendo Metro local (lee tu `.env` de siempre), el build de EAS solo genera
+el binario nativo del dev client.
+
+**Pendiente manual (requiere cuenta real de Expo/EAS y no se puede scriptear desde acá):**
+
+1. Crear una cuenta/organización en https://expo.dev y correr `npx eas login`.
+2. Vincular el proyecto: `npx eas init` (o `npx eas build:configure --platform android`) — esto
+   agrega `extra.eas.projectId` a `app.json`. No se hizo acá a propósito: un `projectId` puesto
+   a mano sin cuenta real quedaría inválido y rompería el link real más adelante.
+3. Cargar los EAS Secrets/env vars por entorno (`eas env:create --environment preview ...` y
+   `--environment production ...`) con los valores reales de `cuidamos-staging` / `cuidamos-prod`
+   (ver "Entornos" arriba) — nunca commitear esos valores.
+4. Para `production`: configurar credenciales de firma Android (`eas credentials`) y, más
+   adelante (fuera del alcance de esta issue), el submit automático a Play Console necesita
+   un service account JSON de Google Play, cargado también como secreto de EAS, nunca en el repo.
+
+**Comandos** (una vez resuelto lo anterior):
+
+```bash
+# development: APK con Dev Client, para iterar contra Metro local
+npm run build:dev      # == eas build --profile development --platform android
+
+# preview: APK para pruebas internas/cerradas, apunta a staging
+npm run build:preview  # == eas build --profile preview --platform android
+
+# production: AAB firmado para Play Store, apunta a prod-cerrado
+npm run build:prod     # == eas build --profile production --platform android
+```
+
 ## Variables de entorno y secretos
 
 - `EXPO_PUBLIC_*` son las únicas variables que puede leer la app — terminan empaquetadas en el bundle, así que son públicas por definición. Solo van acá `SUPABASE_URL` y el `anon key` (protegido por RLS del lado del servidor).
