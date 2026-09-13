@@ -58,9 +58,11 @@ begin
     (family_a, user_c, 'cuidador'), -- 2do miembro real de la Familia A
     (family_b, user_b, 'admin');
 
-  insert into cared_persons (id, family_id, full_name, created_by) values
-    (cared_a, family_a, 'Persona cuidada A', user_a),
-    (cared_b, family_b, 'Persona cuidada B', user_b);
+  -- consent_given_at explícito: NOT NULL desde PGM-24 (ver
+  -- supabase/migrations/20260913231500_cared_persons_consent_required.sql).
+  insert into cared_persons (id, family_id, full_name, consent_given_at, created_by) values
+    (cared_a, family_a, 'Persona cuidada A', now(), user_a),
+    (cared_b, family_b, 'Persona cuidada B', now(), user_b);
 
   insert into shifts (id, family_id, cared_person_id, assigned_to, starts_at, ends_at, created_by) values
     (shift_a, family_a, cared_a, user_a, now(), now() + interval '4 hours', user_a),

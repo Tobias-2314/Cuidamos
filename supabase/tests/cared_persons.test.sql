@@ -9,6 +9,13 @@
 --      texto plano) y se recupera correctamente vía extensions.decrypt_text (mismo patrón
 --      que supabase/tests/encryption.test.sql de PGM-3).
 --
+-- ACTUALIZADO EN PGM-24 ([BE] Consentimiento explícito al crear el perfil): los INSERTs de
+-- cared_persons del fixture (paso 1) ahora incluyen `consent_given_at` explícito, porque esa
+-- columna pasó a ser NOT NULL en
+-- supabase/migrations/20260913231500_cared_persons_consent_required.sql -- sin ese valor
+-- este test fallaría con not_null_violation. Se agregó además un caso nuevo (paso 9) que
+-- verifica el invariante inverso: insertar SIN consent_given_at debe ser rechazado.
+--
 -- Cómo correrlo:
 --   npm run db:start   (una vez, si el stack local no está arriba)
 --   *** Requiere que la GUC app.settings.encryption_key ya esté seteada en esta sesión de
@@ -58,9 +65,9 @@ begin
     (family_a, user_a, 'admin'),
     (family_b, user_b, 'admin');
 
-  insert into cared_persons (id, family_id, full_name, condition_notes, created_by) values
-    (cared_a, family_a, 'Persona cuidada A', extensions.encrypt_text(plain), user_a),
-    (cared_b, family_b, 'Persona cuidada B', extensions.encrypt_text(plain), user_b);
+  insert into cared_persons (id, family_id, full_name, condition_notes, consent_given_at, created_by) values
+    (cared_a, family_a, 'Persona cuidada A', extensions.encrypt_text(plain), now(), user_a),
+    (cared_b, family_b, 'Persona cuidada B', extensions.encrypt_text(plain), now(), user_b);
 
   insert into medical_contacts (id, cared_person_id, full_name, specialty, phone, created_by) values
     (med_contact_a, cared_a, 'Dr. A', 'Clínica médica', '111-1111', user_a),
@@ -190,7 +197,22 @@ begin
       null; -- esperado: RLS bloqueó el insert.
   end;
 
+  -- 9) PGM-24: consentimiento explícito obligatorio -- insertar una cared_person SIN
+  --    consent_given_at (columna NOT NULL desde PGM-24, ver
+  --    supabase/migrations/20260913231500_cared_persons_consent_required.sql) tiene que ser
+  --    rechazado por la base de datos con not_null_violation, incluso para un INSERT que
+  --    por lo demás es válido (user_a insertando sobre su propia familia_a).
+  begin
+    insert into cared_persons (family_id, full_name, created_by)
+    values (family_a, 'Persona sin consentimiento', user_a);
+    raise exception 'FALLO CONSENTIMIENTO: se pudo insertar una cared_person sin consent_given_at';
+  exception
+    when not_null_violation then
+      null; -- esperado: la columna NOT NULL bloqueó el insert.
+  end;
+
   raise notice 'PGM-21 cared_persons smoke test: OK (aislamiento RLS y cifrado de condition_notes verificados)';
+  raise notice 'PGM-24 consentimiento obligatorio: OK (insert sin consent_given_at rechazado con not_null_violation)';
 
   -- 9) Limpieza del fixture (camino feliz): volvemos a un rol que bypassea RLS.
   reset role;
