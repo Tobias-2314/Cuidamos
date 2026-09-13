@@ -18,7 +18,8 @@
     "db:diff": "supabase db diff",
     "db:migration:new": "supabase migration new",
     "db:types": "supabase gen types typescript --local > src/lib/database.types.ts",
-    "test:rls": "supabase db query --local -f supabase/tests/rls_isolation.test.sql"
+    "test:rls": "supabase db query --local -f supabase/tests/rls_isolation.test.sql",
+    "test:encryption": "supabase db query --local -f supabase/tests/encryption.test.sql"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",

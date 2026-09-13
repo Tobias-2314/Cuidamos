@@ -61,6 +61,39 @@ Reglas:
 - Los campos de salud (condición médica, notas de medicación, etc.) se cifran en reposo con `pgcrypto` (ver `supabase/migrations/20260913171432_enable_extensions.sql`) y llevan RLS estricto — esto es no negociable por RGPD art. 9 (ver `docs/product-vision.md`).
 - `supabase/seed.sql` es solo para datos de desarrollo local, nunca datos reales de familias.
 
+## Cifrado en reposo (pgcrypto)
+
+Los campos de salud (condición médica, medicación, notas de cambio de turno, etc. — ver la
+lista canónica en `supabase/migrations/20260913210000_encryption_helpers.sql`) se cifran en
+reposo con `pgcrypto` (AES-256) a través de las funciones `extensions.encrypt_text(text)` /
+`extensions.decrypt_text(bytea)`. No negociable por RGPD art. 9.
+
+La clave vive en la GUC de Postgres `app.settings.encryption_key`, nunca hardcodeada.
+
+**Paso manual en LOCAL, después de CADA `npm run db:start` / `npm run db:reset`:**
+
+`supabase db reset` recrea los roles del clúster de Postgres, así que el permiso para
+setear esta GUC custom NO sobrevive a un reset — hay que rehacer este `grant` cada vez
+(no una sola vez por stack de Docker):
+
+```bash
+docker exec -i supabase_db_cuidamos psql -U supabase_admin -d postgres -c \
+  'grant set on parameter "app.settings.encryption_key" to postgres;'
+docker exec -i supabase_db_cuidamos psql -U postgres -d postgres -c \
+  "alter database postgres set app.settings.encryption_key = 'local-dev-only-insecure-key-do-not-use-in-staging-or-prod';"
+```
+
+`supabase/seed.sql` repite automáticamente el segundo comando en cada `db:reset` (con un
+warning si el grant todavía no se hizo), pero el `grant` en sí requiere el rol
+`supabase_admin` y hay que correrlo a mano.
+
+Verificar con: `npm run test:encryption` (smoke test versionado en
+`supabase/tests/encryption.test.sql`).
+
+En staging/prod-cerrado la clave se configura vía Supabase Cloud (ver "Entornos" abajo,
+punto pendiente) con un valor generado criptográficamente, guardado solo en el gestor de
+secretos de CI/CD — nunca en un archivo del repo.
+
 ## Entornos
 
 Tres entornos, todos proyectos Supabase separados (no hay un solo proyecto con "modo staging"):
@@ -84,6 +117,7 @@ Cada entorno tiene su propio `.env.<entorno>` (nunca commiteado) basado en la pl
 3. Copiar la `service_role key` de cada proyecto como secreto en el sistema de CI/CD (EAS Secrets / GitHub Actions), nunca en un archivo del repo.
 4. `npx supabase link --project-ref <ref>` desde cada máquina/pipeline que necesite pushear migraciones a ese entorno.
 5. En prod-cerrado, revisar que `auth.email.enable_confirmations` esté en `true` (a diferencia de dev) antes de invitar familias reales.
+6. Setear `app.settings.encryption_key` (clave de cifrado en reposo, PGM-3) en cada proyecto Cloud con un valor generado criptográficamente (ej. `openssl rand -base64 32`), guardado solo en el gestor de secretos de CI/CD — ver "Cifrado en reposo" arriba. Verificar ANTES de invitar familias reales a prod-cerrado.
 
 ## Variables de entorno y secretos
 
