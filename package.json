@@ -24,6 +24,7 @@
     "test:cared-persons": "supabase db query --local -f supabase/tests/cared_persons.test.sql",
     "test:shifts": "supabase db query --local -f supabase/tests/shifts.test.sql",
     "test:medications": "supabase db query --local -f supabase/tests/medications.test.sql",
+    "test:family-invitations": "supabase db query --local -f supabase/tests/family_invitations.test.sql",
     "build:dev": "eas build --profile development --platform android",
     "build:preview": "eas build --profile preview --platform android",
     "build:prod": "eas build --profile production --platform android"
