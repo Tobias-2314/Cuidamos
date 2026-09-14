@@ -27,6 +27,7 @@
     "test:list-family-members": "supabase db query --local -f supabase/tests/list_family_members_rpc.test.sql",
     "test:medications": "supabase db query --local -f supabase/tests/medications.test.sql",
     "test:family-invitations": "supabase db query --local -f supabase/tests/family_invitations.test.sql",
+    "test:shift-handovers": "supabase db query --local -f supabase/tests/shift_handovers.test.sql",
     "build:dev": "eas build --profile development --platform android",
     "build:preview": "eas build --profile preview --platform android",
     "build:prod": "eas build --profile production --platform android"
