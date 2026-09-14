@@ -214,8 +214,17 @@ export function MedicationFormScreen({ mode, medicationId }: MedicationFormScree
       <View style={styles.centerContainer}>
         <Text style={styles.emptyTitle}>Todavía no formás parte de ninguna familia.</Text>
         <Text style={styles.helperText}>
-          Cuando te unas o crees una familia, vas a poder cargar medicamentos.
+          Creá una familia para empezar a cargar medicamentos, o pedile a quien te invitó el
+          link de invitación.
         </Text>
+        <Pressable
+          style={styles.retryButton}
+          onPress={() => router.push('/family/create')}
+          accessibilityRole="button"
+          accessibilityLabel="Crear familia"
+        >
+          <Text style={styles.retryButtonText}>Crear familia</Text>
+        </Pressable>
       </View>
     );
   }

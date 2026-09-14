@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 
 import { getAssignedToLabel } from './assignedToLabel';
 import {
@@ -17,8 +18,8 @@ import { supabase } from '../../lib/supabase';
  * explicit-states approach as `LoginScreen.tsx` (PGM-17):
  * - 'loading': resolving the user's family_id and/or fetching shifts.
  * - 'no-family': the user is authenticated but not a member of any family
- *   yet (gap #1 in the PGM-26 issue — no family creation/selection screen
- *   exists yet).
+ *   yet. PGM-18 closed the gap flagged in PGM-26 (no family creation screen
+ *   existed) — this state now offers a CTA into `/family/create`.
  * - 'error': something failed (auth, family lookup, or shifts fetch).
  * - 'ready': shifts loaded (may be an empty list — rendered as its own
  *   empty state, not an error).
@@ -30,6 +31,7 @@ function shiftUnitsPerDayLabel(view: CalendarView): string {
 }
 
 export function CalendarScreen() {
+  const router = useRouter();
   const [view, setView] = useState<CalendarView>('weekly');
   const [referenceDate, setReferenceDate] = useState(() => new Date());
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -177,8 +179,17 @@ export function CalendarScreen() {
         <View style={styles.centerContent}>
           <Text style={styles.emptyTitle}>Todavía no formás parte de ninguna familia.</Text>
           <Text style={styles.helperText}>
-            Cuando te unas o crees una familia, vas a poder ver acá los turnos coordinados.
+            Creá una familia para empezar a coordinar turnos, o pedile a quien te invitó el link
+            de invitación.
           </Text>
+          <Pressable
+            style={styles.retryButton}
+            onPress={() => router.push('/family/create')}
+            accessibilityRole="button"
+            accessibilityLabel="Crear familia"
+          >
+            <Text style={styles.retryButtonText}>Crear familia</Text>
+          </Pressable>
         </View>
       ) : null}
 

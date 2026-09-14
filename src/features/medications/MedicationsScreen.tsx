@@ -100,14 +100,26 @@ export function MedicationsScreen() {
     <View style={styles.container}>
       <View style={styles.headerRow}>
         <Text style={styles.title}>Medicación</Text>
-        <Pressable
-          style={styles.newButton}
-          onPress={() => router.push('/medications/new')}
-          accessibilityRole="button"
-          accessibilityLabel="Agregar medicamento"
-        >
-          <Text style={styles.newButtonText}>+ Nuevo</Text>
-        </Pressable>
+        <View style={styles.headerActions}>
+          {phase === 'ready' ? (
+            <Pressable
+              style={styles.inviteButton}
+              onPress={() => router.push('/family/invite')}
+              accessibilityRole="button"
+              accessibilityLabel="Invitar a un cuidador"
+            >
+              <Text style={styles.inviteButtonText}>Invitar</Text>
+            </Pressable>
+          ) : null}
+          <Pressable
+            style={styles.newButton}
+            onPress={() => router.push('/medications/new')}
+            accessibilityRole="button"
+            accessibilityLabel="Agregar medicamento"
+          >
+            <Text style={styles.newButtonText}>+ Nuevo</Text>
+          </Pressable>
+        </View>
       </View>
 
       {phase === 'loading' ? (
@@ -137,8 +149,17 @@ export function MedicationsScreen() {
         <View style={styles.centerContent}>
           <Text style={styles.emptyTitle}>Todavía no formás parte de ninguna familia.</Text>
           <Text style={styles.helperText}>
-            Cuando te unas o crees una familia, vas a poder ver acá los medicamentos.
+            Creá una familia para empezar a cargar medicamentos, o pedile a quien te invitó el
+            link de invitación.
           </Text>
+          <Pressable
+            style={styles.retryButton}
+            onPress={() => router.push('/family/create')}
+            accessibilityRole="button"
+            accessibilityLabel="Crear familia"
+          >
+            <Text style={styles.retryButtonText}>Crear familia</Text>
+          </Pressable>
         </View>
       ) : null}
 
@@ -377,6 +398,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 16,
   },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
   newButton: {
     backgroundColor: '#2f6f4f',
     borderRadius: 8,
@@ -385,6 +410,18 @@ const styles = StyleSheet.create({
   },
   newButtonText: {
     color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  inviteButton: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#2f6f4f',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  inviteButtonText: {
+    color: '#2f6f4f',
     fontWeight: '600',
     fontSize: 14,
   },
