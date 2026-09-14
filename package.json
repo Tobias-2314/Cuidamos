@@ -22,6 +22,7 @@
     "test:rls-helper": "supabase db query --local -f supabase/tests/is_family_member.test.sql",
     "test:encryption": "supabase db query --local -f supabase/tests/encryption.test.sql",
     "test:cared-persons": "supabase db query --local -f supabase/tests/cared_persons.test.sql",
+    "test:cared-persons-write-rpc": "supabase db query --local -f supabase/tests/cared_persons_write_rpc.test.sql",
     "test:shifts": "supabase db query --local -f supabase/tests/shifts.test.sql",
     "test:medications": "supabase db query --local -f supabase/tests/medications.test.sql",
     "test:family-invitations": "supabase db query --local -f supabase/tests/family_invitations.test.sql",

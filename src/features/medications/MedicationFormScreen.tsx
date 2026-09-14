@@ -36,8 +36,9 @@ interface MedicationFormScreenProps {
  * - 'no-family': mismo gap de producto que el resto de las pantallas (no hay UI de
  *   creación/selección de familia todavía).
  * - 'no-cared-person': solo en modo 'create' -- la familia existe pero todavía no tiene
- *   ninguna `cared_person` cargada, así que no hay a quién asignarle el medicamento (ver
- *   NOTES: no hay UI para crear una cared_person, es un gap de producto previo a esta issue).
+ *   ninguna `cared_person` cargada, así que no hay a quién asignarle el medicamento. Desde
+ *   PGM-22 (`CaredPersonFormScreen`, ruta `/cared-person/new`) ya existe una pantalla de alta
+ *   a la que este estado redirige -- antes de esa issue no había ninguna UI para esto.
  * - 'not-found': solo en modo 'edit' -- el `medicationId` de la ruta no corresponde a
  *   ningún medicamento de la familia del usuario (borrado, o de otra familia).
  * - 'error': falló la carga de familia/cared_persons/medicamento.
@@ -234,9 +235,16 @@ export function MedicationFormScreen({ mode, medicationId }: MedicationFormScree
       <View style={styles.centerContainer}>
         <Text style={styles.emptyTitle}>Todavía no hay ninguna persona cuidada cargada.</Text>
         <Text style={styles.helperText}>
-          Un medicamento siempre pertenece a una persona cuidada. Esa pantalla todavía no
-          existe (ver NOTES del agente).
+          Un medicamento siempre pertenece a una persona cuidada. Cargá su perfil primero.
         </Text>
+        <Pressable
+          style={styles.retryButton}
+          onPress={() => router.push('/cared-person/new')}
+          accessibilityRole="button"
+          accessibilityLabel="Cargar persona cuidada"
+        >
+          <Text style={styles.retryButtonText}>Cargar persona cuidada</Text>
+        </Pressable>
       </View>
     );
   }
