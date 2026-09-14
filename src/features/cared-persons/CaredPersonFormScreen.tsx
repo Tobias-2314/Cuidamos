@@ -26,9 +26,10 @@ import { getCurrentUserFamilyId } from '../shifts/shiftsService';
  * - 'already-exists': la familia YA tiene una persona cuidada. v1 asume una
  *   sola cared_person por familia (mismo criterio que
  *   `getCaredPersonsForFamily`/`MedicationFormScreen`) -- no tiene sentido
- *   mostrar el formulario de alta de nuevo. No hay todavía una pantalla de
- *   "ficha" (`PGM-23`) a la que redirigir, así que se muestra un estado
- *   informativo en vez de un `router.replace` (ver NOTES del agente).
+ *   mostrar el formulario de alta de nuevo. Desde PGM-23 ya existe la
+ *   pantalla de "ficha" (`/cared-person`), así que este estado redirige ahí
+ *   con `router.replace` en vez de mostrar el dead-end informativo que había
+ *   antes (ver NOTES del agente).
  * - 'error': falló la carga de familia/cared_persons.
  * - 'ready': el formulario de alta está visible.
  */
@@ -78,12 +79,13 @@ export function CaredPersonFormScreen() {
 
     if (caredPersonsResult.data.length > 0) {
       setPhase('already-exists');
+      router.replace('/cared-person');
       return;
     }
 
     setFamilyId(familyResult.data);
     setPhase('ready');
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     loadInitialData();
@@ -130,7 +132,7 @@ export function CaredPersonFormScreen() {
     router.back();
   }
 
-  if (phase === 'loading') {
+  if (phase === 'loading' || phase === 'already-exists') {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator />
@@ -172,26 +174,6 @@ export function CaredPersonFormScreen() {
           accessibilityLabel="Crear familia"
         >
           <Text style={styles.retryButtonText}>Crear familia</Text>
-        </Pressable>
-      </View>
-    );
-  }
-
-  if (phase === 'already-exists') {
-    return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.emptyTitle}>Tu familia ya tiene una persona cuidada cargada.</Text>
-        <Text style={styles.helperText}>
-          Por ahora cada familia coordina el cuidado de una sola persona. Todavía no existe una
-          pantalla para ver/editar ese perfil (ver NOTES del agente).
-        </Text>
-        <Pressable
-          style={styles.secondaryButton}
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel="Volver"
-        >
-          <Text style={styles.secondaryButtonText}>Volver</Text>
         </Pressable>
       </View>
     );
