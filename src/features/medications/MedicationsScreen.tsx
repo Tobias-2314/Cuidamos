@@ -8,6 +8,8 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { formatMedicationSubtitle, formatTakenAtTime, MAX_MEDICATION_NOTE_LENGTH } from './medicationFormatting';
 import {
@@ -33,6 +35,7 @@ const CONFIRMATION_VISIBLE_MS = 2500;
 type Phase = 'loading' | 'no-family' | 'error' | 'ready';
 
 export function MedicationsScreen() {
+  const router = useRouter();
   const [familyId, setFamilyId] = useState<string | null>(null);
   const [medications, setMedications] = useState<Medication[]>([]);
   const [phase, setPhase] = useState<Phase>('loading');
@@ -75,9 +78,15 @@ export function MedicationsScreen() {
     await loadMedicationsForFamily(familyResult.data);
   }, [loadMedicationsForFamily]);
 
-  useEffect(() => {
-    resolveFamilyAndLoad();
-  }, [resolveFamilyAndLoad]);
+  // `useFocusEffect` (no un `useEffect` con `[]`) a propósito: PGM-31 agrega alta/edición en
+  // otra pantalla (`MedicationFormScreen`) -- al volver acá con `router.back()` después de
+  // guardar, esta pantalla necesita recargar la lista sin depender de que el caller le pase
+  // ningún dato de vuelta. Se re-ejecuta en cada foco, incluido el montaje inicial.
+  useFocusEffect(
+    useCallback(() => {
+      resolveFamilyAndLoad();
+    }, [resolveFamilyAndLoad])
+  );
 
   const handleRetry = useCallback(() => {
     if (familyId) {
@@ -89,7 +98,17 @@ export function MedicationsScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Medicación</Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.title}>Medicación</Text>
+        <Pressable
+          style={styles.newButton}
+          onPress={() => router.push('/medications/new')}
+          accessibilityRole="button"
+          accessibilityLabel="Agregar medicamento"
+        >
+          <Text style={styles.newButtonText}>+ Nuevo</Text>
+        </Pressable>
+      </View>
 
       {phase === 'loading' ? (
         <View style={styles.centerContent}>
@@ -126,9 +145,14 @@ export function MedicationsScreen() {
       {phase === 'ready' && medications.length === 0 ? (
         <View style={styles.centerContent}>
           <Text style={styles.emptyTitle}>Todavía no hay medicamentos cargados.</Text>
-          <Text style={styles.helperText}>
-            El alta de medicamentos se hace desde otra pantalla (próximamente).
-          </Text>
+          <Pressable
+            style={styles.retryButton}
+            onPress={() => router.push('/medications/new')}
+            accessibilityRole="button"
+            accessibilityLabel="Agregar el primer medicamento"
+          >
+            <Text style={styles.retryButtonText}>Agregar medicamento</Text>
+          </Pressable>
         </View>
       ) : null}
 
@@ -163,6 +187,7 @@ interface MedicationRowProps {
 }
 
 function MedicationRow({ medication }: MedicationRowProps) {
+  const router = useRouter();
   const [rowPhase, setRowPhase] = useState<RowPhase>('idle');
   const [note, setNote] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -225,9 +250,19 @@ function MedicationRow({ medication }: MedicationRowProps) {
 
   return (
     <View style={styles.medicationRow}>
-      <View style={styles.medicationInfo}>
-        <Text style={styles.medicationName}>{medication.name}</Text>
-        <Text style={styles.medicationSubtitle}>{formatMedicationSubtitle(medication)}</Text>
+      <View style={styles.medicationHeaderRow}>
+        <View style={styles.medicationInfo}>
+          <Text style={styles.medicationName}>{medication.name}</Text>
+          <Text style={styles.medicationSubtitle}>{formatMedicationSubtitle(medication)}</Text>
+        </View>
+        <Pressable
+          style={styles.editButton}
+          onPress={() => router.push(`/medications/${medication.id}/edit`)}
+          accessibilityRole="button"
+          accessibilityLabel={`Editar ${medication.name}`}
+        >
+          <Text style={styles.editButtonText}>Editar</Text>
+        </Pressable>
       </View>
 
       {rowPhase === 'idle' ? (
@@ -335,7 +370,23 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: '700',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 16,
+  },
+  newButton: {
+    backgroundColor: '#2f6f4f',
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  newButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
   },
   centerContent: {
     flex: 1,
@@ -382,7 +433,14 @@ const styles = StyleSheet.create({
     borderBottomColor: '#e0e0e0',
     gap: 10,
   },
+  medicationHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
   medicationInfo: {
+    flex: 1,
     gap: 2,
   },
   medicationName: {
@@ -393,6 +451,15 @@ const styles = StyleSheet.create({
   medicationSubtitle: {
     fontSize: 13,
     color: '#666',
+  },
+  editButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  editButtonText: {
+    color: '#2f6f4f',
+    fontWeight: '600',
+    fontSize: 13,
   },
   actionsRow: {
     flexDirection: 'row',

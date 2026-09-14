@@ -1,5 +1,5 @@
--- PGM-30: smoke test de aislamiento RLS, cifrado y reparto de registro de tomas para
--- `medications`/`medication_logs`.
+-- PGM-30/PGM-31/PGM-32: smoke test de aislamiento RLS, cifrado, reparto de registro de
+-- tomas y RPCs de lectura/escritura para `medications`/`medication_logs`.
 --
 -- Verifica:
 --   1) Aislamiento RLS: un usuario de la Familia A no puede ver/modificar/borrar los
@@ -16,6 +16,11 @@
 --      MISMA familia (no el propio admin) debe PASAR.
 --   4) Caso negativo: taken_by de un usuario que NO es miembro de la Familia A (es
 --      miembro de la Familia B) debe seguir rechazado con insufficient_privilege.
+--   5) PGM-31 (20260913243000_medications_write_rpc.sql): create_medication cifra
+--      server-side y respeta medications_insert_member; update_medication solo toca los
+--      campos pedidos (incluidos los flags p_clear_instructions/p_clear_schedule) y, sobre
+--      un medicamento de otra familia, afecta 0 filas en vez de tirar excepción o modificar
+--      datos ajenos.
 --
 -- Cómo correrlo:
 --   npm run db:start   (una vez, si el stack local no está arriba)
@@ -53,11 +58,17 @@ declare
   plain_dose constant text := '10mg';
   plain_note constant text := 'tomado con el desayuno, sin efectos adversos';
   new_log_id uuid;
+  new_med_id uuid;
   matched int;
   affected int;
   decrypted_name text;
   decrypted_dose text;
   decrypted_note text;
+  decrypted_instructions text;
+  returned_name text;
+  returned_dose text;
+  returned_instructions text;
+  returned_schedule text;
   raw_name_cipher bytea;
 begin
   -- 1) Fixture: se crea como `postgres` (bypassa RLS) para no depender de las policies que
@@ -244,12 +255,91 @@ begin
       null; -- esperado: RLS (security invoker) bloqueó el insert igual que un insert directo.
   end;
 
-  raise notice 'PGM-30 medications/medication_logs smoke test: OK (aislamiento RLS, cifrado y reparto de registro de tomas verificados)';
+  -- 12) PGM-31: RPCs create_medication/update_medication (ver
+  --     20260913243000_medications_write_rpc.sql) -- cifran server-side y devuelven texto
+  --     plano ya descifrado, siguen sujetas a medications_insert_member/
+  --     medications_update_member (mismo criterio que las RPC de PGM-32 arriba).
+  select id, name, dose, instructions, schedule
+  into new_med_id, returned_name, returned_dose, returned_instructions, returned_schedule
+  from public.create_medication(cared_a, 'Ibuprofeno', '600mg', 'con las comidas', 'cada 12 horas');
 
-  -- 12) Limpieza del fixture (camino feliz): volvemos a un rol que bypassea RLS.
+  if new_med_id is null
+    or returned_name is distinct from 'Ibuprofeno'
+    or returned_dose is distinct from '600mg'
+    or returned_instructions is distinct from 'con las comidas'
+    or returned_schedule is distinct from 'cada 12 horas'
+  then
+    raise exception 'FALLO RPC: create_medication no devolvió la fila en texto plano tal como se envió (id: %, name: %, dose: %, instructions: %, schedule: %)',
+      new_med_id, returned_name, returned_dose, returned_instructions, returned_schedule;
+  end if;
+
+  perform 1 from medications where id = new_med_id and created_by = user_a;
+  if not found then
+    raise exception 'FALLO RPC: create_medication no fijó created_by = auth.uid() (user_a)';
+  end if;
+
+  select extensions.decrypt_text(name) into decrypted_name from medications where id = new_med_id;
+  if decrypted_name is distinct from 'Ibuprofeno' then
+    raise exception 'FALLO CIFRADO: create_medication no cifró name server-side (decrypt_text devolvió: %)', decrypted_name;
+  end if;
+
+  begin
+    perform public.create_medication(cared_b, 'intruso', '0mg');
+    raise exception 'FALLO RLS vía RPC: create_medication pudo insertar un medicamento sobre la cared_person de la Familia B';
+  exception
+    when insufficient_privilege then
+      null; -- esperado: RLS (security invoker) bloqueó el insert igual que un insert directo.
+  end;
+
+  -- update_medication: solo dose + borrar instructions explícitamente -- name/schedule NO
+  -- se tocan (deben conservar su valor).
+  returned_instructions := null;
+  select name, dose, instructions, schedule
+  into returned_name, returned_dose, returned_instructions, returned_schedule
+  from public.update_medication(
+    p_medication_id => new_med_id,
+    p_dose => '800mg',
+    p_instructions => null,
+    p_clear_instructions => true
+  );
+
+  if returned_name is distinct from 'Ibuprofeno' then
+    raise exception 'FALLO RPC: update_medication tocó name sin que se pidiera (obtuvo: %)', returned_name;
+  end if;
+  if returned_dose is distinct from '800mg' then
+    raise exception 'FALLO RPC: update_medication no actualizó dose (obtuvo: %)', returned_dose;
+  end if;
+  if returned_instructions is not null then
+    raise exception 'FALLO RPC: update_medication no borró instructions con p_clear_instructions (obtuvo: %)', returned_instructions;
+  end if;
+  if returned_schedule is distinct from 'cada 12 horas' then
+    raise exception 'FALLO RPC: update_medication tocó schedule sin que se pidiera (obtuvo: %)', returned_schedule;
+  end if;
+
+  perform 1 from medications where id = new_med_id and instructions is null;
+  if not found then
+    raise exception 'FALLO RPC: update_medication no persistió el borrado de instructions';
+  end if;
+
+  -- Caso negativo: actualizar un medicamento de la Familia B debe afectar 0 filas (RLS
+  -- silenciosa en UPDATE, no excepción) -- update_medication debe devolver un result set
+  -- vacío, no la fila de otra familia.
+  select count(*) into matched from public.update_medication(p_medication_id => med_b, p_dose => 'hackeado');
+  if matched <> 0 then
+    raise exception 'FALLO RLS vía RPC: update_medication pudo actualizar un medicamento de la Familia B (% filas devueltas)', matched;
+  end if;
+
+  perform 1 from medications where id = med_b and extensions.decrypt_text(dose) = 'hackeado';
+  if found then
+    raise exception 'FALLO RLS vía RPC: update_medication modificó el dose de un medicamento de la Familia B';
+  end if;
+
+  raise notice 'PGM-30/PGM-31/PGM-32 medications/medication_logs smoke test: OK (aislamiento RLS, cifrado, reparto de registro de tomas y alta/edición vía RPC verificados)';
+
+  -- 13) Limpieza del fixture (camino feliz): volvemos a un rol que bypassea RLS.
   reset role;
-  delete from medication_logs where medication_id in (med_a, med_b);
-  delete from medications where id in (med_a, med_b);
+  delete from medication_logs where medication_id in (med_a, med_b, new_med_id);
+  delete from medications where id in (med_a, med_b, new_med_id);
   delete from cared_persons where id in (cared_a, cared_b);
   delete from family_members where family_id in (family_a, family_b);
   delete from families where id in (family_a, family_b);
@@ -260,8 +350,8 @@ exception
     -- Limpieza del fixture también en el camino de error, para no dejar basura en la base
     -- local aunque una aserción haya fallado.
     reset role;
-    delete from medication_logs where medication_id in (med_a, med_b);
-    delete from medications where id in (med_a, med_b);
+    delete from medication_logs where medication_id in (med_a, med_b, new_med_id);
+    delete from medications where id in (med_a, med_b, new_med_id);
     delete from cared_persons where id in (cared_a, cared_b);
     delete from family_members where family_id in (family_a, family_b);
     delete from families where id in (family_a, family_b);
