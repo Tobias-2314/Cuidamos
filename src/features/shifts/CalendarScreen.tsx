@@ -152,6 +152,17 @@ export function CalendarScreen() {
         </View>
       ) : null}
 
+      {familyId ? (
+        <Pressable
+          style={styles.assignButton}
+          onPress={() => router.push('/shifts/new')}
+          accessibilityRole="button"
+          accessibilityLabel="Asignar turno nuevo"
+        >
+          <Text style={styles.assignButtonText}>+ Asignar turno</Text>
+        </Pressable>
+      ) : null}
+
       {phase === 'loading' ? (
         <View style={styles.centerContent}>
           <ActivityIndicator />
@@ -207,7 +218,11 @@ export function CalendarScreen() {
             <Text style={styles.sectionHeader}>{section.title}</Text>
           )}
           renderItem={({ item }) => (
-            <ShiftRow shift={item} currentUserId={currentUserId} />
+            <ShiftRow
+              shift={item}
+              currentUserId={currentUserId}
+              onReassignPress={() => router.push(`/shifts/${item.id}/reassign`)}
+            />
           )}
           contentContainerStyle={styles.listContent}
         />
@@ -239,14 +254,17 @@ function ViewToggleButton({ label, active, onPress }: ViewToggleButtonProps) {
 interface ShiftRowProps {
   shift: Shift;
   currentUserId: string | null;
+  onReassignPress: () => void;
 }
 
-function ShiftRow({ shift, currentUserId }: ShiftRowProps) {
+function ShiftRow({ shift, currentUserId, onReassignPress }: ShiftRowProps) {
+  const assigneeLabel = getAssignedToLabel(shift.assignedTo, currentUserId);
+
   return (
     <View style={styles.shiftRow}>
       <Text style={styles.shiftTime}>{formatShiftTimeRange(shift)}</Text>
       <View style={styles.shiftDetails}>
-        <Text style={styles.shiftAssignee}>{getAssignedToLabel(shift.assignedTo, currentUserId)}</Text>
+        <Text style={styles.shiftAssignee}>{assigneeLabel}</Text>
         {shift.caredPersonName ? (
           <Text style={styles.shiftCaredPerson}>{shift.caredPersonName}</Text>
         ) : null}
@@ -254,6 +272,14 @@ function ShiftRow({ shift, currentUserId }: ShiftRowProps) {
       <View style={styles.statusBadge}>
         <Text style={styles.statusBadgeText}>{SHIFT_STATUS_LABELS_ES[shift.status]}</Text>
       </View>
+      <Pressable
+        onPress={onReassignPress}
+        accessibilityRole="button"
+        accessibilityLabel={`Reasignar turno, actualmente asignado a ${assigneeLabel}`}
+        style={styles.reassignButton}
+      >
+        <Text style={styles.reassignButtonText}>Reasignar</Text>
+      </Pressable>
     </View>
   );
 }
@@ -312,6 +338,18 @@ const styles = StyleSheet.create({
   navLabel: {
     fontSize: 14,
     color: '#555',
+  },
+  assignButton: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#2f6f4f',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    marginBottom: 12,
+  },
+  assignButtonText: {
+    color: '#fff',
+    fontWeight: '600',
   },
   centerContent: {
     flex: 1,
@@ -397,5 +435,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#2f6f4f',
     fontWeight: '600',
+  },
+  reassignButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  reassignButtonText: {
+    fontSize: 12,
+    color: '#2f6f4f',
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
 });
