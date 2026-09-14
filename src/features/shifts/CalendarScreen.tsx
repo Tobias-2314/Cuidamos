@@ -153,14 +153,29 @@ export function CalendarScreen() {
       ) : null}
 
       {familyId ? (
-        <Pressable
-          style={styles.assignButton}
-          onPress={() => router.push('/shifts/new')}
-          accessibilityRole="button"
-          accessibilityLabel="Asignar turno nuevo"
-        >
-          <Text style={styles.assignButtonText}>+ Asignar turno</Text>
-        </Pressable>
+        <View style={styles.actionsRow}>
+          <Pressable
+            style={styles.assignButton}
+            onPress={() => router.push('/shifts/new')}
+            accessibilityRole="button"
+            accessibilityLabel="Asignar turno nuevo"
+          >
+            <Text style={styles.assignButtonText}>+ Asignar turno</Text>
+          </Pressable>
+          {/* PGM-28: entry point al panel de reparto -- decisión de navegación
+              documentada en NOTES del agente que lo implementó. Un botón acá
+              es el punto de entrada más natural: este screen ya es el "hub"
+              de turnos de la familia, y el panel de reparto es una vista
+              derivada de los mismos turnos. */}
+          <Pressable
+            style={styles.coverageButton}
+            onPress={() => router.push('/shifts/coverage')}
+            accessibilityRole="button"
+            accessibilityLabel="Ver reparto de turnos del mes"
+          >
+            <Text style={styles.coverageButtonText}>Ver reparto</Text>
+          </Pressable>
+        </View>
       ) : null}
 
       {phase === 'loading' ? (
@@ -339,16 +354,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#555',
   },
+  actionsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
   assignButton: {
     alignSelf: 'flex-start',
     backgroundColor: '#2f6f4f',
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    marginBottom: 12,
   },
   assignButtonText: {
     color: '#fff',
+    fontWeight: '600',
+  },
+  coverageButton: {
+    alignSelf: 'flex-start',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#2f6f4f',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  coverageButtonText: {
+    color: '#2f6f4f',
     fontWeight: '600',
   },
   centerContent: {
