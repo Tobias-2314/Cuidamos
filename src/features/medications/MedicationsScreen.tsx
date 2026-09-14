@@ -111,6 +111,16 @@ export function MedicationsScreen() {
               <Text style={styles.inviteButtonText}>Invitar</Text>
             </Pressable>
           ) : null}
+          {phase === 'ready' ? (
+            <Pressable
+              style={styles.inviteButton}
+              onPress={() => router.push('/medications/history')}
+              accessibilityRole="button"
+              accessibilityLabel="Ver historial de tomas"
+            >
+              <Text style={styles.inviteButtonText}>Historial</Text>
+            </Pressable>
+          ) : null}
           <Pressable
             style={styles.newButton}
             onPress={() => router.push('/medications/new')}

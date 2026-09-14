@@ -33,6 +33,23 @@ export function formatTakenAtTime(takenAtIso: string): string {
 }
 
 /**
+ * Formatea una hora real de toma (`taken_at` ISO) como "DD/MM HH:MM" (PGM-33).
+ *
+ * A diferencia de `formatTakenAtTime` (usada en la confirmación inline de
+ * `MedicationsScreen`, donde "hoy" está implícito porque la toma acaba de pasar), el
+ * historial de PGM-33 lista tomas de días distintos -- mostrar solo la hora sería
+ * ambiguo ("08:00" ¿de cuándo?). Se agrega la fecha corta, sin año: alcanza para
+ * distinguir entre días dentro del historial reciente, sin la verbosidad de un
+ * datetime completo.
+ */
+export function formatTakenAtDateTime(takenAtIso: string): string {
+  const date = new Date(takenAtIso);
+  const day = pad2(date.getDate());
+  const month = pad2(date.getMonth() + 1);
+  return `${day}/${month} ${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
+}
+
+/**
  * Subtítulo de una fila de medicamento: dosis y, si existe, horario libre.
  * Ej. "500mg · cada 8 horas" o solo "500mg" cuando no hay `schedule`.
  */

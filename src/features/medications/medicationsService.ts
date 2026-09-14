@@ -67,6 +67,22 @@ const medicationLogRowSchema = z.object({
 });
 
 /**
+ * Fila del historial de tomas (PGM-33) -- superset de `medicationLogRowSchema` con
+ * `medication_name` (también descifrado por la RPC), necesario para que una fila del
+ * historial tenga sentido fuera del contexto de "este medicamento" (ver comentario de
+ * diseño en `supabase/migrations/20260914150000_medication_logs_history_rpc.sql`).
+ */
+const medicationLogEntryRowSchema = z.object({
+  id: z.string(),
+  medication_id: z.string(),
+  medication_name: z.string(),
+  taken_by: z.string(),
+  taken_at: z.string(),
+  note: z.string().nullable(),
+  created_at: z.string(),
+});
+
+/**
  * `cared_persons.full_name` NO está cifrado (ver
  * `supabase/migrations/20260913220000_cared_persons.sql`) — a diferencia de
  * `medications`, esta fila se puede leer con un `.select()` directo de
@@ -107,6 +123,35 @@ function mapMedicationLogRow(row: z.infer<typeof medicationLogRowSchema>): Medic
   return {
     id: row.id,
     medicationId: row.medication_id,
+    takenBy: row.taken_by,
+    takenAt: row.taken_at,
+    note: row.note,
+    createdAt: row.created_at,
+  };
+}
+
+/**
+ * Fila del historial de tomas (PGM-33), con el nombre del medicamento ya resuelto —
+ * ver `medicationLogEntryRowSchema` sobre por qué esta fila lleva un campo extra que
+ * `MedicationLog` no tiene.
+ */
+export interface MedicationLogEntry {
+  id: string;
+  medicationId: string;
+  medicationName: string;
+  takenBy: string;
+  takenAt: string;
+  note: string | null;
+  createdAt: string;
+}
+
+function mapMedicationLogEntryRow(
+  row: z.infer<typeof medicationLogEntryRowSchema>
+): MedicationLogEntry {
+  return {
+    id: row.id,
+    medicationId: row.medication_id,
+    medicationName: row.medication_name,
     takenBy: row.taken_by,
     takenAt: row.taken_at,
     note: row.note,
@@ -204,6 +249,48 @@ export async function getMedicationsForFamily(
     return { data: parsedRows, error: null };
   } catch (err: unknown) {
     return { data: null, error: normalizeUnexpectedError('getMedicationsForFamily', err) };
+  }
+}
+
+/**
+ * Trae el historial de tomas de medicación de una familia (PGM-33), con
+ * `medication_name`/`note` ya descifrados y ordenado por `taken_at desc` (más reciente
+ * primero) -- visible para CUALQUIER miembro de la familia, no solo quien registró
+ * cada toma (ese es el punto central de la issue).
+ *
+ * Mismo bloqueante técnico que `getMedicationsForFamily`: `note` es `bytea` cifrado,
+ * así que esta función llama a la RPC `get_medication_logs_for_family`
+ * (supabase/migrations/20260914150000_medication_logs_history_rpc.sql, PGM-33),
+ * `security invoker` -- sigue sujeta a `medication_logs_select_member` (PGM-30).
+ */
+export async function getMedicationLogsForFamily(
+  familyId: string
+): Promise<MedicationsResult<MedicationLogEntry[]>> {
+  try {
+    const { data, error } = await supabase.rpc('get_medication_logs_for_family', {
+      p_family_id: familyId,
+    });
+
+    if (error) {
+      return {
+        data: null,
+        error: { code: error.code || 'db_error', message: GENERIC_ERROR_MESSAGE },
+      };
+    }
+
+    const parsedRows: MedicationLogEntry[] = [];
+    for (const rawRow of data ?? []) {
+      const parsed = medicationLogEntryRowSchema.safeParse(rawRow);
+      if (parsed.success) {
+        parsedRows.push(mapMedicationLogEntryRow(parsed.data));
+      } else if (process.env.NODE_ENV !== 'production') {
+        console.warn('[medicationsService] dropped a medication log row that failed validation');
+      }
+    }
+
+    return { data: parsedRows, error: null };
+  } catch (err: unknown) {
+    return { data: null, error: normalizeUnexpectedError('getMedicationLogsForFamily', err) };
   }
 }
 

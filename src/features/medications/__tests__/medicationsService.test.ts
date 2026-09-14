@@ -10,6 +10,7 @@ import {
   createMedication,
   deleteMedication,
   getCaredPersonsForFamily,
+  getMedicationLogsForFamily,
   getMedicationsForFamily,
   recordMedicationTaken,
   updateMedication,
@@ -109,6 +110,85 @@ describe('medicationsService', () => {
 
       // Act
       const result = await getMedicationsForFamily('family-1');
+
+      // Assert
+      expect(result.error).toBeNull();
+      expect(result.data).toEqual([]);
+    });
+  });
+
+  describe('getMedicationLogsForFamily', () => {
+    const rawLogEntryRow = {
+      id: 'log-1',
+      medication_id: 'med-1',
+      medication_name: 'Enalapril',
+      taken_by: 'user-1',
+      taken_at: '2026-09-13T08:00:00.000Z',
+      note: 'con el desayuno',
+      created_at: '2026-09-13T08:00:00.000Z',
+    };
+
+    test('calls the get_medication_logs_for_family RPC and maps rows', async () => {
+      // Arrange
+      mockedRpc.mockResolvedValue({ data: [rawLogEntryRow], error: null });
+
+      // Act
+      const result = await getMedicationLogsForFamily('family-1');
+
+      // Assert
+      expect(mockedRpc).toHaveBeenCalledWith('get_medication_logs_for_family', {
+        p_family_id: 'family-1',
+      });
+      expect(result).toEqual({
+        data: [
+          {
+            id: 'log-1',
+            medicationId: 'med-1',
+            medicationName: 'Enalapril',
+            takenBy: 'user-1',
+            takenAt: '2026-09-13T08:00:00.000Z',
+            note: 'con el desayuno',
+            createdAt: '2026-09-13T08:00:00.000Z',
+          },
+        ],
+        error: null,
+      });
+    });
+
+    test('maps a log entry with no note', async () => {
+      // Arrange
+      mockedRpc.mockResolvedValue({ data: [{ ...rawLogEntryRow, note: null }], error: null });
+
+      // Act
+      const result = await getMedicationLogsForFamily('family-1');
+
+      // Assert
+      expect(result.data?.[0].note).toBeNull();
+    });
+
+    test('normalizes a Supabase error instead of propagating it raw', async () => {
+      // Arrange
+      mockedRpc.mockResolvedValue({
+        data: null,
+        error: { code: '42501', message: 'insufficient_privilege' },
+      });
+
+      // Act
+      const result = await getMedicationLogsForFamily('family-1');
+
+      // Assert
+      expect(result.data).toBeNull();
+      expect(result.error).toEqual({ code: '42501', message: expect.any(String) });
+      expect(result.error?.message).not.toMatch(/insufficient_privilege/);
+    });
+
+    test('drops a row that fails validation instead of throwing', async () => {
+      // Arrange: missing required `medication_name` field.
+      const invalidRow = { ...rawLogEntryRow, medication_name: undefined };
+      mockedRpc.mockResolvedValue({ data: [invalidRow], error: null });
+
+      // Act
+      const result = await getMedicationLogsForFamily('family-1');
 
       // Assert
       expect(result.error).toBeNull();

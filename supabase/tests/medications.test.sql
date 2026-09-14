@@ -1,5 +1,5 @@
--- PGM-30/PGM-31/PGM-32: smoke test de aislamiento RLS, cifrado, reparto de registro de
--- tomas y RPCs de lectura/escritura para `medications`/`medication_logs`.
+-- PGM-30/PGM-31/PGM-32/PGM-33: smoke test de aislamiento RLS, cifrado, reparto de
+-- registro de tomas y RPCs de lectura/escritura para `medications`/`medication_logs`.
 --
 -- Verifica:
 --   1) Aislamiento RLS: un usuario de la Familia A no puede ver/modificar/borrar los
@@ -21,6 +21,10 @@
 --      campos pedidos (incluidos los flags p_clear_instructions/p_clear_schedule) y, sobre
 --      un medicamento de otra familia, afecta 0 filas en vez de tirar excepción o modificar
 --      datos ajenos.
+--   6) PGM-33 (20260914150000_medication_logs_history_rpc.sql): get_medication_logs_for_family
+--      devuelve note/medication_name ya descifrados, ordena por taken_at desc (más reciente
+--      primero) y, llamada con el family_id de una familia ajena, devuelve CERO filas (mismo
+--      patrón de aislamiento que list_family_members_rpc.test.sql de PGM-27).
 --
 -- Cómo correrlo:
 --   npm run db:start   (una vez, si el stack local no está arriba)
@@ -70,6 +74,14 @@ declare
   returned_instructions text;
   returned_schedule text;
   raw_name_cipher bytea;
+  hist_older_taken_at constant timestamptz := now() + interval '10 years';
+  hist_newer_taken_at constant timestamptz := now() + interval '20 years';
+  hist_older_log_id uuid;
+  hist_newer_log_id uuid;
+  hist_medication_name text;
+  hist_note text;
+  first_log_id uuid;
+  second_log_id uuid;
 begin
   -- 1) Fixture: se crea como `postgres` (bypassa RLS) para no depender de las policies que
   --    estamos por probar.
@@ -255,6 +267,67 @@ begin
       null; -- esperado: RLS (security invoker) bloqueó el insert igual que un insert directo.
   end;
 
+  -- 11a) PGM-33: RPC get_medication_logs_for_family (ver
+  --      20260914150000_medication_logs_history_rpc.sql).
+  --
+  --      Fixtures dedicados con taken_at en el futuro lejano (+10/+20 años) para que
+  --      queden garantizados como los dos logs MÁS recientes de family_a sin importar el
+  --      resto de los logs que ya insertó este test con taken_at = now() (todos con el
+  --      mismo timestamp de transacción, indistinguibles entre sí para probar orden).
+  insert into medication_logs (id, medication_id, taken_by, taken_at, note)
+  values
+    (gen_random_uuid(), med_a, user_a, hist_older_taken_at, extensions.encrypt_text('toma histórica más vieja de las dos'))
+  returning id into hist_older_log_id;
+
+  insert into medication_logs (id, medication_id, taken_by, taken_at, note)
+  values
+    (gen_random_uuid(), med_a, user_a, hist_newer_taken_at, extensions.encrypt_text('toma histórica más nueva de las dos'))
+  returning id into hist_newer_log_id;
+
+  -- CASO POSITIVO: user_a (miembro de family_a) ve el historial de su propia familia con
+  -- note/medication_name ya DESCIFRADOS -- comparados contra el texto plano original.
+  select medication_name, note
+  into hist_medication_name, hist_note
+  from public.get_medication_logs_for_family(family_a)
+  where id = log_a;
+
+  if hist_medication_name is distinct from plain_name then
+    raise exception 'FALLO RPC: get_medication_logs_for_family no devolvió medication_name descifrado para log_a (obtuvo: %, esperado: %)', hist_medication_name, plain_name;
+  end if;
+
+  if hist_note is distinct from plain_note then
+    raise exception 'FALLO RPC: get_medication_logs_for_family no devolvió note descifrado para log_a (obtuvo: %, esperado: %)', hist_note, plain_note;
+  end if;
+
+  -- Sanity check adicional (mismo patrón que el resto del archivo): decrypt_text directo
+  -- sobre la tabla debe coincidir con lo que devolvió la RPC.
+  select extensions.decrypt_text(note) into decrypted_note from medication_logs where id = log_a;
+  if decrypted_note is distinct from hist_note then
+    raise exception 'FALLO RPC: get_medication_logs_for_family.note (%) no coincide con decrypt_text directo sobre medication_logs (%)', hist_note, decrypted_note;
+  end if;
+
+  -- ORDEN: taken_at desc (más reciente primero). Se consulta la RPC sin agregar un ORDER
+  -- BY propio -- lo que se está probando es que la función YA devuelve el orden correcto.
+  select id into first_log_id from public.get_medication_logs_for_family(family_a) limit 1;
+  select id into second_log_id from public.get_medication_logs_for_family(family_a) offset 1 limit 1;
+
+  if first_log_id is distinct from hist_newer_log_id then
+    raise exception 'FALLO RPC: get_medication_logs_for_family(family_a) no ordenó por taken_at desc -- la primera fila (%) no es el log más reciente (%)', first_log_id, hist_newer_log_id;
+  end if;
+
+  if second_log_id is distinct from hist_older_log_id then
+    raise exception 'FALLO RPC: get_medication_logs_for_family(family_a) no ordenó por taken_at desc -- la segunda fila (%) no es el segundo log más reciente (%)', second_log_id, hist_older_log_id;
+  end if;
+
+  -- CASO NEGATIVO CRÍTICO (aislamiento cross-family, mismo patrón que
+  -- list_family_members_rpc.test.sql de PGM-27): user_a NO es miembro de family_b --
+  -- get_medication_logs_for_family(family_b) debe devolver CERO filas, nunca datos reales
+  -- de otra familia ni siquiera parcialmente.
+  select count(*) into matched from public.get_medication_logs_for_family(family_b);
+  if matched <> 0 then
+    raise exception 'FALLO RLS vía RPC: get_medication_logs_for_family(family_b) devolvió % filas de otra familia a user_a -- fuga de datos entre familias', matched;
+  end if;
+
   -- 12) PGM-31: RPCs create_medication/update_medication (ver
   --     20260913243000_medications_write_rpc.sql) -- cifran server-side y devuelven texto
   --     plano ya descifrado, siguen sujetas a medications_insert_member/
@@ -334,7 +407,7 @@ begin
     raise exception 'FALLO RLS vía RPC: update_medication modificó el dose de un medicamento de la Familia B';
   end if;
 
-  raise notice 'PGM-30/PGM-31/PGM-32 medications/medication_logs smoke test: OK (aislamiento RLS, cifrado, reparto de registro de tomas y alta/edición vía RPC verificados)';
+  raise notice 'PGM-30/PGM-31/PGM-32/PGM-33 medications/medication_logs smoke test: OK (aislamiento RLS, cifrado, reparto de registro de tomas, alta/edición vía RPC e historial de tomas vía RPC verificados)';
 
   -- 13) Limpieza del fixture (camino feliz): volvemos a un rol que bypassea RLS.
   reset role;
