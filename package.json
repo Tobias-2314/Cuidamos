@@ -29,6 +29,7 @@
     "test:family-invitations": "supabase db query --local -f supabase/tests/family_invitations.test.sql",
     "test:shift-handovers": "supabase db query --local -f supabase/tests/shift_handovers.test.sql",
     "test:push-tokens": "supabase db query --local -f supabase/tests/push_tokens.test.sql",
+    "test:export-family-data": "supabase db query --local -f supabase/tests/export_family_data.test.sql",
     "build:dev": "eas build --profile development --platform android",
     "build:preview": "eas build --profile preview --platform android",
     "build:prod": "eas build --profile production --platform android"
