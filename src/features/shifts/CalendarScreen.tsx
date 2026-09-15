@@ -237,6 +237,7 @@ export function CalendarScreen() {
               shift={item}
               currentUserId={currentUserId}
               onReassignPress={() => router.push(`/shifts/${item.id}/reassign`)}
+              onHandoverPress={() => router.push(`/shifts/${item.id}/handover`)}
             />
           )}
           contentContainerStyle={styles.listContent}
@@ -270,9 +271,10 @@ interface ShiftRowProps {
   shift: Shift;
   currentUserId: string | null;
   onReassignPress: () => void;
+  onHandoverPress: () => void;
 }
 
-function ShiftRow({ shift, currentUserId, onReassignPress }: ShiftRowProps) {
+function ShiftRow({ shift, currentUserId, onReassignPress, onHandoverPress }: ShiftRowProps) {
   const assigneeLabel = getAssignedToLabel(shift.assignedTo, currentUserId);
 
   return (
@@ -287,6 +289,19 @@ function ShiftRow({ shift, currentUserId, onReassignPress }: ShiftRowProps) {
       <View style={styles.statusBadge}>
         <Text style={styles.statusBadgeText}>{SHIFT_STATUS_LABELS_ES[shift.status]}</Text>
       </View>
+      {/* PGM-36: entry point al formulario de cierre de turno (F5, traspaso).
+          Se ofrece en cualquier turno (no solo los 'completed') -- mismo
+          criterio que "Reasignar": la pantalla de cierre es su propia
+          responsable de decidir si tiene sentido cerrarlo, este listado no
+          filtra por estado (ver NOTES del agente). */}
+      <Pressable
+        onPress={onHandoverPress}
+        accessibilityRole="button"
+        accessibilityLabel={`Cerrar turno con traspaso, ${formatShiftTimeRange(shift)}`}
+        style={styles.handoverButton}
+      >
+        <Text style={styles.handoverButtonText}>Cerrar turno</Text>
+      </Pressable>
       <Pressable
         onPress={onReassignPress}
         accessibilityRole="button"
@@ -472,6 +487,16 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   reassignButtonText: {
+    fontSize: 12,
+    color: '#2f6f4f',
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
+  handoverButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  handoverButtonText: {
     fontSize: 12,
     color: '#2f6f4f',
     fontWeight: '600',
