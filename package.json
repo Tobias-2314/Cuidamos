@@ -32,6 +32,7 @@
     "test:export-family-data": "supabase db query --local -f supabase/tests/export_family_data.test.sql",
     "test:delete-family-data": "supabase db query --local -f supabase/tests/delete_family_data.test.sql",
     "test:audit-events": "supabase db query --local -f supabase/tests/audit_events.test.sql",
+    "test:shifts-upcoming-reminders": "supabase db query --local -f supabase/tests/shifts_upcoming_reminders.test.sql",
     "build:dev": "eas build --profile development --platform android",
     "build:preview": "eas build --profile preview --platform android",
     "build:prod": "eas build --profile production --platform android"
