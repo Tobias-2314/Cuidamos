@@ -1,0 +1,32 @@
+Codemap generation report — 2026-09-15
+
+Primera generación (no existían codemaps previos, sin diff que calcular).
+
+Archivos escaneados: 93 (git scope: committed)
+- app/ (16 rutas Expo Router)
+- src/features/ (5 features: auth, cared-persons, family, medications, shifts)
+- supabase/migrations/ (14 migraciones)
+- supabase/tests/ (10 suites SQL)
+- docs/product-vision.md
+
+Codemaps generados en docs/CODEMAPS/:
+- architecture.md   (~450 tokens est.)
+- backend.md        (~500 tokens est.)
+- frontend.md        (~350 tokens est.)
+- data.md            (~500 tokens est.)
+- dependencies.md    (~300 tokens est.)
+Total estimado: ~2100 tokens — se lee una vez en vez de explorar ~90 archivos
+por sesión/fase de /team.
+
+Dependencias nuevas detectadas: ninguna (primera corrida).
+
+Cambios de arquitectura relevantes encontrados:
+- shift_handovers (PGM-35) tiene modelo de datos + cifrado 100% de columnas,
+  pero todavía sin RPCs de lectura/escritura ni UI — próximo trabajo esperado
+  de Backend/Frontend según el patrón ya usado en medications.
+- No hay framework de E2E configurado (Detox/Maestro) pese a que testing.md
+  del proyecto lo pide para flujos críticos — hueco de cobertura, no bug.
+
+Staleness: N/A (generación inicial). Recomendación: regenerar con
+`/update-codemaps` después de cambios grandes de schema o de estructura de
+features, o cuando pasen ~90 días sin tocarlos.
