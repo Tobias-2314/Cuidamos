@@ -10,6 +10,7 @@ import {
   SHIFT_STATUS_LABELS_ES,
   type CalendarView,
 } from './calendarSections';
+import { LatestShiftHandoverCard } from './LatestShiftHandoverCard';
 import { getCurrentUserFamilyId, getShiftsForFamily, type Shift } from './shiftsService';
 import { supabase } from '../../lib/supabase';
 
@@ -124,6 +125,15 @@ export function CalendarScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Calendario de turnos</Text>
+
+      {/* PGM-37: "último traspaso" visible al abrir la app, sin que el usuario lo
+          busque -- CalendarScreen es el "hub" de turnos de la familia (ver PGM-28), el
+          lugar más natural para que esto aparezca solo. La card resuelve su propia
+          carga (RPC de lectura, todavía pendiente de Backend -- ver NOTES) y nunca
+          bloquea el resto de la pantalla. */}
+      {familyId ? (
+        <LatestShiftHandoverCard familyId={familyId} currentUserId={currentUserId} />
+      ) : null}
 
       <View style={styles.toggleRow}>
         <ViewToggleButton label="Semana" active={view === 'weekly'} onPress={() => setView('weekly')} />

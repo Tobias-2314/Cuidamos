@@ -206,3 +206,128 @@ export async function createShiftHandover(
     return { data: null, error: normalizeUnexpectedError('createShiftHandover', err) };
   }
 }
+
+/**
+ * Traspaso de turno (F5) resuelto para mostrar en "último traspaso" (PGM-37), con el
+ * rango horario del turno que documenta ya incluido -- una fila de este widget no tiene
+ * sentido sin saber DE QUÉ turno es (a diferencia de `ShiftHandoverFormScreen`, que ya
+ * conoce el turno porque el usuario lo abrió desde ahí). Mismo criterio que
+ * `MedicationLogEntry` sumando `medicationName` sobre `MedicationLog`
+ * (`medicationsService.ts`, PGM-33): la RPC de lectura resuelve el join, el Frontend no
+ * hace un segundo round-trip a `shifts` para completar el contexto.
+ */
+export interface LatestShiftHandover {
+  id: string;
+  shiftId: string;
+  shiftStartsAt: string;
+  shiftEndsAt: string;
+  resumen: string | null;
+  comida: string | null;
+  animo: string | null;
+  pendientes: string | null;
+  createdBy: string;
+  createdAt: string;
+}
+
+const latestShiftHandoverRowSchema = z.object({
+  id: z.string(),
+  shift_id: z.string(),
+  shift_starts_at: z.string(),
+  shift_ends_at: z.string(),
+  resumen: z.string().nullable(),
+  comida: z.string().nullable(),
+  animo: z.string().nullable(),
+  pendientes: z.string().nullable(),
+  created_by: z.string(),
+  created_at: z.string(),
+});
+
+function mapLatestShiftHandoverRow(
+  row: z.infer<typeof latestShiftHandoverRowSchema>
+): LatestShiftHandover {
+  return {
+    id: row.id,
+    shiftId: row.shift_id,
+    shiftStartsAt: row.shift_starts_at,
+    shiftEndsAt: row.shift_ends_at,
+    resumen: row.resumen,
+    comida: row.comida,
+    animo: row.animo,
+    pendientes: row.pendientes,
+    createdBy: row.created_by,
+    createdAt: row.created_at,
+  };
+}
+
+/**
+ * Trae el traspaso de turno más reciente de una familia (F5, PGM-37) -- "el último
+ * traspaso queda visible al abrir la app para el siguiente cuidador". `null` (sin
+ * `error`) significa "todavía no hay ningún traspaso registrado en esta familia", un
+ * estado 'empty' válido, NO un error -- mismo criterio que `logs.length === 0` en
+ * `getMedicationLogsForFamily`/`MedicationHistoryScreen`, adaptado a "una fila, no una
+ * lista" (acá alcanza con `null` en vez de un array vacío).
+ *
+ * TODO(PGM-backend): RPC pendiente -- `get_latest_shift_handover_for_family` todavía NO
+ * existe (issue futura de Backend, mismo patrón que PGM-35 -> RPC futura documentado en
+ * `shift_handovers.sql`, y que `create_shift_handover` en esta misma capa de Service).
+ * Sigue el mismo patrón que `get_medications_for_family`/`get_medication_logs_for_family`
+ * (`medicationsService.ts`, PGM-32/33): una RPC `security invoker` que descifra
+ * `resumen`/`comida`/`animo`/`pendientes` server-side (los 4 son `bytea`, ver
+ * `shift_handovers.sql`) y devuelve texto plano, visible a TODA la familia (no solo a
+ * quien cerró el turno) -- sigue sujeta a `shift_handovers_select_member`. Se espera que
+ * devuelva como máximo una fila: la de `created_at` más reciente entre los turnos de la
+ * familia, con `shift_starts_at`/`shift_ends_at` ya resueltos vía join a `shifts` (mismo
+ * criterio de "la RPC resuelve el join" que `medication_name` en
+ * `get_medication_logs_for_family`). NO se implementa un `.select()` directo como
+ * fallback: leería los 4 `bytea` cifrados sin descifrar.
+ *
+ * Hasta que esa RPC exista, cualquier llamada real falla con un error de Postgres
+ * ("function does not exist"), que esta función normaliza como cualquier otro error de
+ * RPC (nunca lo propaga crudo) -- es responsabilidad del componente que consume esta
+ * función (`LatestShiftHandoverCard`) decidir cómo mostrar ese error sin que se vea como
+ * una falla real (ver NOTES del agente: por diseño de producto, este widget nunca debe
+ * verse "roto" en la pantalla de inicio).
+ */
+export async function getLatestShiftHandoverForFamily(
+  familyId: string
+): Promise<ShiftHandoversResult<LatestShiftHandover | null>> {
+  try {
+    const { data, error } = await supabase.rpc('get_latest_shift_handover_for_family', {
+      p_family_id: familyId,
+    });
+
+    if (error) {
+      return {
+        data: null,
+        error: { code: error.code || 'db_error', message: GENERIC_ERROR_MESSAGE },
+      };
+    }
+
+    // Igual que `create_shift_handover`/`create_medication_log`: si la RPC está definida
+    // como `returns table (...)`, postgrest-js la devuelve como un array (acá, de 0 o 1
+    // filas -- "el" traspaso más reciente, nunca más de uno).
+    const rawRow = Array.isArray(data) ? data[0] : data;
+
+    if (!rawRow) {
+      return { data: null, error: null };
+    }
+
+    const parsed = latestShiftHandoverRowSchema.safeParse(rawRow);
+
+    if (!parsed.success) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn(
+          '[shiftHandoversService] get_latest_shift_handover_for_family response failed validation'
+        );
+      }
+      return {
+        data: null,
+        error: { code: 'invalid_response', message: GENERIC_ERROR_MESSAGE },
+      };
+    }
+
+    return { data: mapLatestShiftHandoverRow(parsed.data), error: null };
+  } catch (err: unknown) {
+    return { data: null, error: normalizeUnexpectedError('getLatestShiftHandoverForFamily', err) };
+  }
+}

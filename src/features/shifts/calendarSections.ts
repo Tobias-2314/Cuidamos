@@ -82,8 +82,16 @@ export function getRangeForView(view: CalendarView, referenceDate: Date): DateRa
   return view === 'weekly' ? getWeekRange(referenceDate) : getMonthRange(referenceDate);
 }
 
-/** Formatea el rango horario de un turno, ej. "08:00 - 14:30". */
-export function formatShiftTimeRange(shift: Shift): string {
+/**
+ * Formatea el rango horario de un turno, ej. "08:00 - 14:30".
+ *
+ * Toma solo `startsAt`/`endsAt` (`Pick<Shift, ...>`, no el `Shift` completo) — PGM-37
+ * (`LatestShiftHandoverCard`) reusa esta función para el rango horario del turno de un
+ * traspaso, que no trae un `Shift` completo (viene resuelto por la RPC de lectura junto
+ * con los campos del traspaso). Todo caller existente que ya pasaba un `Shift` sigue
+ * funcionando sin cambios (`Shift` satisface este tipo más chico estructuralmente).
+ */
+export function formatShiftTimeRange(shift: Pick<Shift, 'startsAt' | 'endsAt'>): string {
   return `${formatTime(new Date(shift.startsAt))} - ${formatTime(new Date(shift.endsAt))}`;
 }
 

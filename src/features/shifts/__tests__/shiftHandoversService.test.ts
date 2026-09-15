@@ -6,7 +6,7 @@ jest.mock('../../../lib/supabase', () => ({
 
 import { supabase } from '../../../lib/supabase';
 import { MAX_SHIFT_HANDOVER_FIELD_LENGTH } from '../shiftHandoverValidation';
-import { createShiftHandover } from '../shiftHandoversService';
+import { createShiftHandover, getLatestShiftHandoverForFamily } from '../shiftHandoversService';
 
 const mockedRpc = supabase.rpc as jest.Mock;
 
@@ -106,6 +106,88 @@ describe('shiftHandoversService', () => {
 
       // Act
       const result = await createShiftHandover({ shiftId: 'shift-1', resumen: 'sin incidentes' });
+
+      // Assert
+      expect(result.data).toBeNull();
+      expect(result.error?.code).toBe('invalid_response');
+    });
+  });
+
+  describe('getLatestShiftHandoverForFamily', () => {
+    const rawLatestHandoverRow = {
+      id: 'handover-1',
+      shift_id: 'shift-1',
+      shift_starts_at: '2026-09-14T20:00:00.000Z',
+      shift_ends_at: '2026-09-15T08:00:00.000Z',
+      resumen: 'sin incidentes',
+      comida: 'almorzó bien',
+      animo: null,
+      pendientes: null,
+      created_by: 'user-1',
+      created_at: '2026-09-15T08:00:00.000Z',
+    };
+
+    test('calls the get_latest_shift_handover_for_family RPC and maps the decrypted row', async () => {
+      // Arrange
+      mockedRpc.mockResolvedValue({ data: [rawLatestHandoverRow], error: null });
+
+      // Act
+      const result = await getLatestShiftHandoverForFamily('family-1');
+
+      // Assert
+      expect(mockedRpc).toHaveBeenCalledWith('get_latest_shift_handover_for_family', {
+        p_family_id: 'family-1',
+      });
+      expect(result.error).toBeNull();
+      expect(result.data).toEqual({
+        id: 'handover-1',
+        shiftId: 'shift-1',
+        shiftStartsAt: '2026-09-14T20:00:00.000Z',
+        shiftEndsAt: '2026-09-15T08:00:00.000Z',
+        resumen: 'sin incidentes',
+        comida: 'almorzó bien',
+        animo: null,
+        pendientes: null,
+        createdBy: 'user-1',
+        createdAt: '2026-09-15T08:00:00.000Z',
+      });
+    });
+
+    test('returns null data (not an error) when the family has no handover yet', async () => {
+      // Arrange -- la RPC devuelve un array vacío: "sin traspaso reciente todavía" es un
+      // estado 'empty' válido, no una falla.
+      mockedRpc.mockResolvedValue({ data: [], error: null });
+
+      // Act
+      const result = await getLatestShiftHandoverForFamily('family-1');
+
+      // Assert
+      expect(result.error).toBeNull();
+      expect(result.data).toBeNull();
+    });
+
+    test('normalizes a Supabase error instead of propagating it raw', async () => {
+      // Arrange -- ej. la RPC no existe todavía (PGM-backend pendiente, ver NOTES)
+      mockedRpc.mockResolvedValue({
+        data: null,
+        error: { code: '42883', message: 'function get_latest_shift_handover_for_family(...) does not exist' },
+      });
+
+      // Act
+      const result = await getLatestShiftHandoverForFamily('family-1');
+
+      // Assert
+      expect(result.data).toBeNull();
+      expect(result.error).toEqual({ code: '42883', message: expect.any(String) });
+      expect(result.error?.message).not.toMatch(/does not exist/);
+    });
+
+    test('treats an invalid RPC response shape as an error instead of trusting it', async () => {
+      // Arrange
+      mockedRpc.mockResolvedValue({ data: [{ unexpected: 'shape' }], error: null });
+
+      // Act
+      const result = await getLatestShiftHandoverForFamily('family-1');
 
       // Assert
       expect(result.data).toBeNull();
