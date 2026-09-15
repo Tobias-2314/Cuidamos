@@ -30,6 +30,7 @@
     "test:shift-handovers": "supabase db query --local -f supabase/tests/shift_handovers.test.sql",
     "test:push-tokens": "supabase db query --local -f supabase/tests/push_tokens.test.sql",
     "test:export-family-data": "supabase db query --local -f supabase/tests/export_family_data.test.sql",
+    "test:delete-family-data": "supabase db query --local -f supabase/tests/delete_family_data.test.sql",
     "build:dev": "eas build --profile development --platform android",
     "build:preview": "eas build --profile preview --platform android",
     "build:prod": "eas build --profile production --platform android"
