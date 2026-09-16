@@ -34,6 +34,8 @@
     "test:audit-events": "supabase db query --local -f supabase/tests/audit_events.test.sql",
     "test:shifts-upcoming-reminders": "supabase db query --local -f supabase/tests/shifts_upcoming_reminders.test.sql",
     "test:medications-never-logged": "supabase db query --local -f supabase/tests/medications_never_logged.test.sql",
+    "test:shift-handovers-rpc": "supabase db query --local -f supabase/tests/shift_handovers_rpc.test.sql",
+    "test:profiles": "supabase db query --local -f supabase/tests/profiles.test.sql",
     "build:dev": "eas build --profile development --platform android",
     "build:preview": "eas build --profile preview --platform android",
     "build:prod": "eas build --profile production --platform android"

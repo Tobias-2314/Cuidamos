@@ -38,25 +38,8 @@ function roleLabel(role: CareProfile['role']): string {
 
 /**
  * Perfil de cuidador (F1, PGM-20) -- "nombre y relación con el mayor
- * cuidado".
- *
- * FALTA BACKEND PARA ESTA ISSUE (ver NOTES del agente para el detalle
- * completo): revisando `supabase/migrations/` completo no existe ninguna
- * tabla `profiles` ni ninguna columna de nombre/relación para un cuidador --
- * lo único que hoy existe es `family_members.role` y lo que ya trae la
- * sesión de Supabase Auth (`email`). Esta pantalla:
- *
- * 1. Muestra lo que SÍ existe hoy (email + rol) vía
- *    `getCurrentUserCareProfile` -- de solo lectura, no un formulario.
- * 2. Ofrece el formulario COMPLETO de nombre/relación (campos, validación,
- *    loading/error) porque la issue lo pide explícitamente, pero
- *    `updateCareProfile` (`careProfileService.ts`) todavía no persiste nada
- *    -- devuelve siempre un error `not_implemented` con un mensaje honesto
- *    en vez de intentar un `.update()`/`.upsert()` contra una
- *    tabla/columna inventada (eso rompería en runtime con un error de
- *    Postgres poco claro). Ver el comentario de esa función para el punto
- *    de integración real, ya comentado y listo para descomentar cuando
- *    Backend agregue la migración correspondiente.
+ * cuidado". Persiste en `profiles` (migración
+ * `20260916150000_profiles.sql`) vía `careProfileService.ts`.
  */
 export function CareProfileScreen() {
   const [phase, setPhase] = useState<Phase>('loading');
@@ -67,7 +50,6 @@ export function CareProfileScreen() {
   const [relation, setRelation] = useState('');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitNotice, setSubmitNotice] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const loadProfile = useCallback(async () => {
@@ -82,6 +64,8 @@ export function CareProfileScreen() {
     }
 
     setProfile(result.data);
+    setName(result.data.name ?? '');
+    setRelation(result.data.relationToCaredPerson ?? '');
     setPhase('ready');
   }, []);
 
@@ -112,24 +96,18 @@ export function CareProfileScreen() {
     }
 
     setIsSubmitting(true);
-    setSubmitNotice(null);
     setSubmitError(null);
 
     const result = await updateCareProfile({ name: trimmedName, relation: trimmedRelation });
 
     setIsSubmitting(false);
 
-    // `updateCareProfile` hoy SIEMPRE devuelve error (ver comentario de esa
-    // función) -- distinguimos `not_implemented` (aviso informativo, no es
-    // un bug) de cualquier otro código (error real, ej. input inválido).
-    if (result.error?.code === 'not_implemented') {
-      setSubmitNotice(result.error.message);
+    if (result.error) {
+      setSubmitError(result.error.message);
       return;
     }
 
-    if (result.error) {
-      setSubmitError(result.error.message);
-    }
+    setProfile(result.data);
   }
 
   if (phase === 'loading') {
@@ -173,10 +151,7 @@ export function CareProfileScreen() {
           <Text style={styles.accountValue}>{roleLabel(profile?.role ?? null)}</Text>
         </View>
 
-        <Text style={styles.subtitle}>
-          Nombre y relación con la persona cuidada -- todavía en desarrollo, ver aviso al
-          guardar.
-        </Text>
+        <Text style={styles.subtitle}>Nombre y relación con la persona cuidada.</Text>
 
         <View style={styles.field}>
           <Text style={styles.label}>Nombre</Text>
@@ -215,16 +190,6 @@ export function CareProfileScreen() {
         {submitError ? (
           <Text style={styles.errorText} accessibilityRole="alert" accessibilityLiveRegion="assertive">
             {submitError}
-          </Text>
-        ) : null}
-
-        {submitNotice ? (
-          <Text
-            style={styles.noticeText}
-            accessibilityRole="text"
-            accessibilityLiveRegion="polite"
-          >
-            {submitNotice}
           </Text>
         ) : null}
 
@@ -326,14 +291,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#b3261e',
     fontWeight: '500',
-    marginBottom: 8,
-  },
-  noticeText: {
-    fontSize: 13,
-    color: '#555',
-    backgroundColor: '#f0f0f0',
-    borderRadius: 8,
-    padding: 12,
     marginBottom: 8,
   },
   retryButton: {

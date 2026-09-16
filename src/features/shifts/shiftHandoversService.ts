@@ -97,24 +97,13 @@ export interface CreateShiftHandoverInput {
  * Registra el traspaso de cierre de un turno (F5, PGM-36): resumen, comida,
  * ánimo y pendientes para el próximo cuidador.
  *
- * BLOQUEANTE TÉCNICO (ver NOTES del agente): igual que `medications`
- * (PGM-30/32), los 4 campos de `shift_handovers` son `bytea` cifrados -- TODOS,
- * no solo algunos (ver nota de diseño en
- * `supabase/migrations/20260914160000_shift_handovers.sql`). `extensions.encrypt_text`
- * no es invocable desde un `.insert()` normal de supabase-js, así que hace
- * falta una RPC `security definer` que cifre server-side.
- *
- * TODO(PGM-backend): RPC pendiente -- `create_shift_handover` todavía NO
- * existe (es trabajo de Backend, issue futura, mismo patrón que
- * PGM-30 -> PGM-32 para medications). Esta función ya deja el punto de
- * integración real (`supabase.rpc('create_shift_handover', ...)`) armado con
- * el shape de parámetros esperado -- hasta que la RPC exista, cualquier
- * llamada real falla con un error de Postgres ("function does not exist"),
- * que este service normaliza como cualquier otro error de RPC (nunca lo
- * propaga crudo). NO se implementa un `.insert()` directo como fallback: eso
- * escribiría los 4 campos en texto plano sobre columnas pensadas para
- * guardar únicamente `bytea` cifrado, violando el requisito de RGPD de esta
- * feature.
+ * Igual que `medications` (PGM-30/32), los 4 campos de `shift_handovers` son
+ * `bytea` cifrados -- TODOS, no solo algunos (ver nota de diseño en
+ * `supabase/migrations/20260914160000_shift_handovers.sql`). Por eso esta
+ * función llama a la RPC `create_shift_handover` (`security invoker`, ver
+ * `supabase/migrations/20260916140000_shift_handovers_rpc.sql`), que cifra
+ * los 4 campos server-side con `extensions.encrypt_text` -- no invocable desde
+ * un `.insert()` normal de supabase-js.
  *
  * Valida el largo de cada campo y exige al menos uno no vacío ANTES de
  * llamar a la RPC (falla rápido, mismo criterio que `createMedication`).
@@ -267,26 +256,19 @@ function mapLatestShiftHandoverRow(
  * `getMedicationLogsForFamily`/`MedicationHistoryScreen`, adaptado a "una fila, no una
  * lista" (acá alcanza con `null` en vez de un array vacío).
  *
- * TODO(PGM-backend): RPC pendiente -- `get_latest_shift_handover_for_family` todavía NO
- * existe (issue futura de Backend, mismo patrón que PGM-35 -> RPC futura documentado en
- * `shift_handovers.sql`, y que `create_shift_handover` en esta misma capa de Service).
- * Sigue el mismo patrón que `get_medications_for_family`/`get_medication_logs_for_family`
- * (`medicationsService.ts`, PGM-32/33): una RPC `security invoker` que descifra
+ * Llama a la RPC `get_latest_shift_handover_for_family` (`security invoker`, ver
+ * `supabase/migrations/20260916140000_shift_handovers_rpc.sql`), que descifra
  * `resumen`/`comida`/`animo`/`pendientes` server-side (los 4 son `bytea`, ver
  * `shift_handovers.sql`) y devuelve texto plano, visible a TODA la familia (no solo a
- * quien cerró el turno) -- sigue sujeta a `shift_handovers_select_member`. Se espera que
- * devuelva como máximo una fila: la de `created_at` más reciente entre los turnos de la
- * familia, con `shift_starts_at`/`shift_ends_at` ya resueltos vía join a `shifts` (mismo
- * criterio de "la RPC resuelve el join" que `medication_name` en
- * `get_medication_logs_for_family`). NO se implementa un `.select()` directo como
- * fallback: leería los 4 `bytea` cifrados sin descifrar.
+ * quien cerró el turno) -- sigue sujeta a `shift_handovers_select_member`. Devuelve como
+ * máximo una fila: la de `created_at` más reciente entre los turnos de la familia, con
+ * `shift_starts_at`/`shift_ends_at` ya resueltos vía join a `shifts` (mismo criterio de
+ * "la RPC resuelve el join" que `medication_name` en `get_medication_logs_for_family`).
  *
- * Hasta que esa RPC exista, cualquier llamada real falla con un error de Postgres
- * ("function does not exist"), que esta función normaliza como cualquier otro error de
- * RPC (nunca lo propaga crudo) -- es responsabilidad del componente que consume esta
- * función (`LatestShiftHandoverCard`) decidir cómo mostrar ese error sin que se vea como
- * una falla real (ver NOTES del agente: por diseño de producto, este widget nunca debe
- * verse "roto" en la pantalla de inicio).
+ * Cualquier error de RPC se normaliza como cualquier otro (nunca se propaga crudo) -- es
+ * responsabilidad del componente que consume esta función (`LatestShiftHandoverCard`)
+ * decidir cómo mostrar ese error sin que se vea como una falla real (por diseño de
+ * producto, este widget nunca debe verse "roto" en la pantalla de inicio).
  */
 export async function getLatestShiftHandoverForFamily(
   familyId: string

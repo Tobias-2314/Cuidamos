@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 import { supabase } from '../../lib/supabase';
 import { getCurrentUserFamilyId } from '../shifts/shiftsService';
 import { getCurrentUserRoleInFamily, type FamilyMemberRole } from './familyService';
@@ -19,33 +21,29 @@ export type CareProfileResult<T> =
   | { data: null; error: CareProfileServiceError };
 
 /**
- * Lo único que HOY existe sobre el cuidador logueado (PGM-20 -- ver NOTES del
- * agente para el detalle completo del gap de producto):
- * - `email`: viene de la sesión de Supabase Auth, no hay que persistir nada.
- * - `role`: `family_members.role` ('admin' | 'cuidador'), ya resuelto vía
+ * Perfil de cuidador (PGM-20 + migración de Backend
+ * 20260916150000_profiles.sql):
+ * - `email`: viene de la sesión de Supabase Auth, no se persiste en `profiles`.
+ * - `role`: `family_members.role` ('admin' | 'cuidador'), resuelto vía
  *   `getCurrentUserRoleInFamily` (PGM-19). `null` cuando el usuario todavía
  *   no tiene familia.
- *
- * NO incluye `name` ni `relationToCaredPerson` -- no existe ninguna
- * tabla/columna donde persistirlos todavía. Ver `updateCareProfile` más
- * abajo y las NOTES del agente para la migración de Backend que hace falta.
+ * - `name` / `relationToCaredPerson`: `profiles.display_name` /
+ *   `profiles.relation_to_cared_person`. `null` cuando el usuario todavía no
+ *   guardó su perfil (no existe fila en `profiles`) o dejó ese campo vacío.
  */
 export interface CareProfile {
   email: string;
   role: FamilyMemberRole | null;
+  name: string | null;
+  relationToCaredPerson: string | null;
 }
 
-const GENERIC_ERROR_MESSAGE = 'No pudimos completar la operación. Intentá de nuevo.';
+const profileRowSchema = z.object({
+  display_name: z.string().nullable(),
+  relation_to_cared_person: z.string().nullable(),
+});
 
-/**
- * Mensaje explícito de "todavía no se puede guardar esto" -- a propósito
- * distinto del genérico de error de red/DB, para que la UI pueda explicarle
- * al usuario POR QUÉ no se guardó (no es un bug transitorio, es una feature
- * incompleta del lado de Backend) en vez de sugerirle "reintentar".
- */
-const NOT_PERSISTABLE_MESSAGE =
-  'Todavía no podemos guardar tu nombre ni tu relación con la persona cuidada -- esta ' +
-  'parte del perfil está en desarrollo. Por ahora podés seguir usando la app con tu email.';
+const GENERIC_ERROR_MESSAGE = 'No pudimos completar la operación. Intentá de nuevo.';
 
 function normalizeUnexpectedError(context: string, _err: unknown): CareProfileServiceError {
   // Nunca exponemos el error crudo -- puede envolver una respuesta de red u
@@ -81,6 +79,30 @@ export async function getCurrentUserCareProfile(): Promise<CareProfileResult<Car
     }
 
     const email = userData.user.email;
+    const userId = userData.user.id;
+
+    // `profiles` es dueño-only (ver 20260916150000_profiles.sql) -- `.maybeSingle()`
+    // porque un usuario que todavía no guardó su perfil simplemente no tiene fila
+    // (no es un error, es el estado inicial de cualquier cuenta nueva).
+    const { data: profileRow, error: profileError } = await supabase
+      .from('profiles')
+      .select('display_name, relation_to_cared_person')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (profileError) {
+      return { data: null, error: normalizeUnexpectedError('getCurrentUserCareProfile:profile', profileError) };
+    }
+
+    let name: string | null = null;
+    let relationToCaredPerson: string | null = null;
+    if (profileRow) {
+      const parsedProfile = profileRowSchema.safeParse(profileRow);
+      if (parsedProfile.success) {
+        name = parsedProfile.data.display_name;
+        relationToCaredPerson = parsedProfile.data.relation_to_cared_person;
+      }
+    }
 
     const familyResult = await getCurrentUserFamilyId();
     if (familyResult.error) {
@@ -88,7 +110,7 @@ export async function getCurrentUserCareProfile(): Promise<CareProfileResult<Car
     }
 
     if (!familyResult.data) {
-      return { data: { email, role: null }, error: null };
+      return { data: { email, role: null, name, relationToCaredPerson }, error: null };
     }
 
     const roleResult = await getCurrentUserRoleInFamily(familyResult.data);
@@ -96,7 +118,7 @@ export async function getCurrentUserCareProfile(): Promise<CareProfileResult<Car
       return { data: null, error: roleResult.error };
     }
 
-    return { data: { email, role: roleResult.data }, error: null };
+    return { data: { email, role: roleResult.data, name, relationToCaredPerson }, error: null };
   } catch (err: unknown) {
     return { data: null, error: normalizeUnexpectedError('getCurrentUserCareProfile', err) };
   }
@@ -108,47 +130,21 @@ export interface UpdateCareProfileInput {
 }
 
 /**
- * "Guarda" el nombre y la relación con la persona cuidada -- EN LOS HECHOS,
- * TODAVÍA NO GUARDA NADA. Ver NOTES del agente (Frontend, PGM-20) para el
- * detalle completo: revisando `supabase/migrations/` completo no existe
- * ninguna tabla `profiles` ni ninguna columna de nombre/relación para un
- * cuidador -- la tabla `profiles` que mencionaba la descripción original de
- * PGM-5 (F1) nunca se construyó.
+ * Guarda (upsert) el nombre y la relación con la persona cuidada en `profiles`
+ * (PGM-20 + migración de Backend 20260916150000_profiles.sql). `display_name`/
+ * `relation_to_cared_person` NO son datos de salud del art. 9 -- se guardan en
+ * texto plano, sin cifrar (a diferencia de condition_notes/medications/
+ * shift_handovers), consistente con el diseño de esa tabla.
  *
- * TODO(PGM-backend): falta una migración de Backend antes de que esta
- * función pueda hacer algo real. Mismo criterio que
- * `shiftHandoversService.createShiftHandover` (PGM-36) documentando el
- * bloqueante técnico, PERO con una diferencia importante: `create_shift_handover`
- * SÍ deja el `supabase.rpc(...)` real armado porque el nombre de esa RPC y su
- * shape de parámetros ya estaban decididos (ver `shift_handovers.sql`). Acá
- * NO hay ninguna tabla/columna/RPC decidida todavía -- inventar un nombre
- * (ej. `profiles`, `family_members.display_name`) sería asumir una decisión
- * de Backend que no se tomó, y un `.update()`/`.upsert()` contra algo que no
- * existe rompería en runtime con un error de Postgres poco claro para quien
- * lea los logs. Por eso el punto de integración real queda COMENTADO acá
- * abajo en vez de descomentado-pero-roto:
- *
- * ```ts
- * // const { data: userData } = await supabase.auth.getUser();
- * // const familyResult = await getCurrentUserFamilyId();
- * // const { error } = await supabase
- * //   .from('profiles') // o la tabla/columna que decida Backend
- * //   .upsert({
- * //     user_id: userData.user.id,
- * //     family_id: familyResult.data,
- * //     display_name: fields.name,
- * //     relation_to_cared_person: fields.relation,
- * //   });
- * ```
- *
- * Mientras tanto, esta función SÍ valida el input (mismo criterio de "falla
- * rápido" que el resto del repo) y devuelve un error explícito y distinto
- * del genérico (`code: 'not_implemented'`) para que la UI pueda explicarle
- * al usuario que esto está en desarrollo, no que hubo una falla transitoria.
+ * `family_id` se resuelve y guarda junto con el perfil (puede ser `null` si el
+ * usuario todavía no tiene familia -- `profiles.family_id` es nullable a
+ * propósito, ver esa migración). RLS (`profiles_insert_own`/`profiles_update_own`)
+ * ya garantiza que un usuario solo puede escribir su propia fila -- esta función
+ * no necesita, ni intenta, validar eso por su cuenta.
  */
 export async function updateCareProfile(
   input: UpdateCareProfileInput
-): Promise<CareProfileResult<never>> {
+): Promise<CareProfileResult<CareProfile>> {
   const parsed = careProfileFieldsSchema.safeParse({ name: input.name, relation: input.relation });
 
   if (!parsed.success) {
@@ -161,8 +157,55 @@ export async function updateCareProfile(
     };
   }
 
-  return {
-    data: null,
-    error: { code: 'not_implemented', message: NOT_PERSISTABLE_MESSAGE },
-  };
+  try {
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !userData.user?.email) {
+      return {
+        data: null,
+        error: { code: 'not_authenticated', message: 'Iniciá sesión para guardar tu perfil.' },
+      };
+    }
+
+    const familyResult = await getCurrentUserFamilyId();
+    if (familyResult.error) {
+      return { data: null, error: familyResult.error };
+    }
+
+    const { error: upsertError } = await supabase.from('profiles').upsert({
+      user_id: userData.user.id,
+      family_id: familyResult.data,
+      display_name: parsed.data.name,
+      relation_to_cared_person: parsed.data.relation,
+      updated_at: new Date().toISOString(),
+    });
+
+    if (upsertError) {
+      return {
+        data: null,
+        error: { code: upsertError.code || 'db_error', message: GENERIC_ERROR_MESSAGE },
+      };
+    }
+
+    let role: FamilyMemberRole | null = null;
+    if (familyResult.data) {
+      const roleResult = await getCurrentUserRoleInFamily(familyResult.data);
+      if (roleResult.error) {
+        return { data: null, error: roleResult.error };
+      }
+      role = roleResult.data;
+    }
+
+    return {
+      data: {
+        email: userData.user.email,
+        role,
+        name: parsed.data.name,
+        relationToCaredPerson: parsed.data.relation,
+      },
+      error: null,
+    };
+  } catch (err: unknown) {
+    return { data: null, error: normalizeUnexpectedError('updateCareProfile', err) };
+  }
 }
