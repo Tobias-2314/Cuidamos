@@ -12,6 +12,7 @@ import {
   type Shift,
 } from './shiftsService';
 import { supabase } from '../../lib/supabase';
+import { colors, fontFamily, radii } from '../../theme/tokens';
 
 interface ShiftReassignScreenProps {
   shiftId: string;
@@ -157,7 +158,7 @@ export function ShiftReassignScreen({ shiftId }: ShiftReassignScreenProps) {
         accessibilityState={{ disabled: !canSubmit, busy: isSubmitting }}
       >
         {isSubmitting ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={colors.white} />
         ) : (
           <Text style={styles.buttonText}>Guardar</Text>
         )}
@@ -179,7 +180,7 @@ export function ShiftReassignScreen({ shiftId }: ShiftReassignScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     padding: 24,
   },
   centerContainer: {
@@ -188,16 +189,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingHorizontal: 24,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
   },
   title: {
     fontSize: 22,
     fontWeight: '700',
+    fontFamily: fontFamily.bold,
     marginBottom: 4,
+    color: colors.ink,
   },
   subtitle: {
     fontSize: 14,
-    color: '#555',
+    color: colors.ink2,
+    fontFamily: fontFamily.regular,
     marginBottom: 16,
   },
   field: {
@@ -207,48 +211,53 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
+    fontFamily: fontFamily.semiBold,
+    color: colors.ink,
   },
   helperText: {
     fontSize: 14,
-    color: '#777',
+    color: colors.ink2,
+    fontFamily: fontFamily.regular,
     textAlign: 'center',
   },
   errorText: {
     fontSize: 14,
-    color: '#b3261e',
+    color: colors.error,
     fontWeight: '500',
+    fontFamily: fontFamily.medium,
     marginBottom: 8,
   },
   retryButton: {
     marginTop: 8,
-    backgroundColor: '#2f6f4f',
-    borderRadius: 8,
+    backgroundColor: colors.brand,
+    borderRadius: radii.sm,
     paddingHorizontal: 20,
     paddingVertical: 10,
   },
   retryButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontWeight: '600',
+    fontFamily: fontFamily.semiBold,
   },
   button: {
-    backgroundColor: '#2f6f4f',
-    borderRadius: 8,
+    backgroundColor: colors.brand,
+    borderRadius: radii.sm,
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 8,
   },
   buttonDisabled: {
-    backgroundColor: '#a8c3b6',
+    backgroundColor: colors.brandMid,
   },
   buttonPressed: {
     opacity: 0.85,
   },
   buttonText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 16,
     fontWeight: '600',
+    fontFamily: fontFamily.semiBold,
   },
   secondaryButton: {
     marginTop: 12,
@@ -257,8 +266,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   secondaryButtonText: {
-    color: '#2f6f4f',
+    color: colors.brand,
     fontSize: 15,
     fontWeight: '600',
+    fontFamily: fontFamily.semiBold,
   },
 });

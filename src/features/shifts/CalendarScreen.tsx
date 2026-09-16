@@ -13,6 +13,7 @@ import {
 import { LatestShiftHandoverCard } from './LatestShiftHandoverCard';
 import { getCurrentUserFamilyId, getShiftsForFamily, type Shift } from './shiftsService';
 import { supabase } from '../../lib/supabase';
+import { colors, fontFamily, radii } from '../../theme/tokens';
 
 /**
  * `phase` tracks the top-level state of the screen, following the same
@@ -327,14 +328,16 @@ function ShiftRow({ shift, currentUserId, onReassignPress, onHandoverPress }: Sh
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     paddingTop: 24,
     paddingHorizontal: 16,
   },
   title: {
     fontSize: 22,
     fontWeight: '700',
+    fontFamily: fontFamily.bold,
     marginBottom: 16,
+    color: colors.ink,
   },
   toggleRow: {
     flexDirection: 'row',
@@ -344,20 +347,21 @@ const styles = StyleSheet.create({
   toggleButton: {
     flex: 1,
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: radii.sm,
     borderWidth: 1,
-    borderColor: '#2f6f4f',
+    borderColor: colors.brand,
     alignItems: 'center',
   },
   toggleButtonActive: {
-    backgroundColor: '#2f6f4f',
+    backgroundColor: colors.brand,
   },
   toggleButtonText: {
-    color: '#2f6f4f',
+    color: colors.brand,
     fontWeight: '600',
+    fontFamily: fontFamily.semiBold,
   },
   toggleButtonTextActive: {
-    color: '#fff',
+    color: colors.white,
   },
   navRow: {
     flexDirection: 'row',
@@ -372,12 +376,14 @@ const styles = StyleSheet.create({
   },
   navButtonText: {
     fontSize: 20,
-    color: '#2f6f4f',
+    color: colors.brand,
     fontWeight: '700',
+    fontFamily: fontFamily.bold,
   },
   navLabel: {
     fontSize: 14,
-    color: '#555',
+    color: colors.ink2,
+    fontFamily: fontFamily.regular,
   },
   actionsRow: {
     flexDirection: 'row',
@@ -386,26 +392,28 @@ const styles = StyleSheet.create({
   },
   assignButton: {
     alignSelf: 'flex-start',
-    backgroundColor: '#2f6f4f',
-    borderRadius: 8,
+    backgroundColor: colors.brand,
+    borderRadius: radii.sm,
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
   assignButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontWeight: '600',
+    fontFamily: fontFamily.semiBold,
   },
   coverageButton: {
     alignSelf: 'flex-start',
-    borderRadius: 8,
+    borderRadius: radii.sm,
     borderWidth: 1,
-    borderColor: '#2f6f4f',
+    borderColor: colors.brand,
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
   coverageButtonText: {
-    color: '#2f6f4f',
+    color: colors.brand,
     fontWeight: '600',
+    fontFamily: fontFamily.semiBold,
   },
   centerContent: {
     flex: 1,
@@ -416,30 +424,34 @@ const styles = StyleSheet.create({
   },
   helperText: {
     fontSize: 14,
-    color: '#777',
+    color: colors.ink2,
     textAlign: 'center',
+    fontFamily: fontFamily.regular,
   },
   errorText: {
     fontSize: 15,
-    color: '#b3261e',
+    color: colors.error,
     fontWeight: '500',
+    fontFamily: fontFamily.medium,
     textAlign: 'center',
   },
   retryButton: {
     marginTop: 8,
-    backgroundColor: '#2f6f4f',
-    borderRadius: 8,
+    backgroundColor: colors.brand,
+    borderRadius: radii.sm,
     paddingHorizontal: 20,
     paddingVertical: 10,
   },
   retryButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontWeight: '600',
+    fontFamily: fontFamily.semiBold,
   },
   emptyTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    fontFamily: fontFamily.semiBold,
+    color: colors.ink,
     textAlign: 'center',
   },
   listContent: {
@@ -448,12 +460,13 @@ const styles = StyleSheet.create({
   sectionHeader: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#333',
-    backgroundColor: '#f3f3f3',
+    fontFamily: fontFamily.bold,
+    color: colors.ink,
+    backgroundColor: colors.surface2,
     paddingVertical: 6,
     paddingHorizontal: 8,
     marginTop: 12,
-    borderRadius: 6,
+    borderRadius: radii.sm,
   },
   shiftRow: {
     flexDirection: 'row',
@@ -461,13 +474,14 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: colors.border,
     gap: 10,
   },
   shiftTime: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#111',
+    fontFamily: fontFamily.semiBold,
+    color: colors.ink,
     width: 110,
   },
   shiftDetails: {
@@ -475,22 +489,25 @@ const styles = StyleSheet.create({
   },
   shiftAssignee: {
     fontSize: 14,
-    color: '#222',
+    color: colors.ink,
+    fontFamily: fontFamily.regular,
   },
   shiftCaredPerson: {
     fontSize: 12,
-    color: '#777',
+    color: colors.ink2,
+    fontFamily: fontFamily.regular,
   },
   statusBadge: {
-    backgroundColor: '#e6efe9',
-    borderRadius: 12,
+    backgroundColor: colors.brandLight,
+    borderRadius: radii.md,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
   statusBadgeText: {
     fontSize: 12,
-    color: '#2f6f4f',
+    color: colors.brand,
     fontWeight: '600',
+    fontFamily: fontFamily.semiBold,
   },
   reassignButton: {
     paddingHorizontal: 10,
@@ -498,8 +515,9 @@ const styles = StyleSheet.create({
   },
   reassignButtonText: {
     fontSize: 12,
-    color: '#2f6f4f',
+    color: colors.brand,
     fontWeight: '600',
+    fontFamily: fontFamily.semiBold,
     textDecorationLine: 'underline',
   },
   handoverButton: {
@@ -508,8 +526,9 @@ const styles = StyleSheet.create({
   },
   handoverButtonText: {
     fontSize: 12,
-    color: '#2f6f4f',
+    color: colors.brand,
     fontWeight: '600',
+    fontFamily: fontFamily.semiBold,
     textDecorationLine: 'underline',
   },
 });

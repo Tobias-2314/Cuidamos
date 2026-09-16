@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { createFamilyInvitation, getCurrentUserRoleInFamily, type FamilyInvitation } from './familyService';
 import { buildInvitationLink, buildInvitationShareMessage } from './invitationLink';
 import { getCurrentUserFamilyId } from '../shifts/shiftsService';
+import { colors, fontFamily, radii } from '../../theme/tokens';
 
 /**
  * `phase` sigue el mismo criterio de estados explícitos que el resto del
@@ -193,7 +194,7 @@ export function InviteFamilyScreen() {
         accessibilityState={{ busy: isGenerating }}
       >
         {isGenerating ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={colors.white} />
         ) : (
           <Text style={styles.buttonText}>
             {invitation ? 'Generar otra invitación' : 'Generar invitación'}
@@ -226,7 +227,7 @@ export function InviteFamilyScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     padding: 24,
   },
   centerContainer: {
@@ -235,95 +236,106 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingHorizontal: 24,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
   },
   title: {
     fontSize: 22,
     fontWeight: '700',
+    fontFamily: fontFamily.bold,
+    color: colors.ink,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: '#555',
+    fontFamily: fontFamily.regular,
+    color: colors.ink2,
     marginBottom: 20,
   },
   helperText: {
     fontSize: 14,
-    color: '#777',
+    fontFamily: fontFamily.regular,
+    color: colors.ink3,
     textAlign: 'center',
   },
   errorText: {
     fontSize: 14,
-    color: '#b3261e',
+    color: colors.error,
     fontWeight: '500',
+    fontFamily: fontFamily.medium,
     marginBottom: 8,
     textAlign: 'center',
   },
   emptyTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    fontFamily: fontFamily.semiBold,
+    color: colors.ink,
     textAlign: 'center',
   },
   retryButton: {
     marginTop: 8,
-    backgroundColor: '#2f6f4f',
-    borderRadius: 8,
+    backgroundColor: colors.brand,
+    borderRadius: radii.sm,
     paddingHorizontal: 20,
     paddingVertical: 10,
   },
   retryButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontWeight: '600',
+    fontFamily: fontFamily.semiBold,
   },
   button: {
-    backgroundColor: '#2f6f4f',
-    borderRadius: 8,
+    backgroundColor: colors.brand,
+    borderRadius: radii.sm,
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
   buttonDisabled: {
-    backgroundColor: '#a8c3b6',
+    backgroundColor: colors.brandMid,
   },
   buttonPressed: {
     opacity: 0.85,
   },
   buttonText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 16,
     fontWeight: '600',
+    fontFamily: fontFamily.semiBold,
   },
   invitationBox: {
     marginTop: 24,
     padding: 16,
-    borderRadius: 8,
+    borderRadius: radii.sm,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
-    backgroundColor: '#f7f9f8',
+    borderColor: colors.border,
+    backgroundColor: colors.surface2,
     gap: 6,
   },
   invitationLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#333',
+    fontFamily: fontFamily.semiBold,
+    color: colors.ink,
   },
   invitationLink: {
     fontSize: 15,
-    color: '#111',
+    color: colors.ink,
     fontWeight: '500',
+    fontFamily: fontFamily.medium,
   },
   secondaryButton: {
     marginTop: 12,
     paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#2f6f4f',
-    borderRadius: 8,
+    backgroundColor: colors.brand,
+    borderRadius: radii.sm,
   },
   secondaryButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 15,
     fontWeight: '600',
+    fontFamily: fontFamily.semiBold,
   },
 });

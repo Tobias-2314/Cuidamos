@@ -13,6 +13,7 @@ import {
 
 import { signInWithMagicLink } from './authService';
 import { isValidEmail } from './isValidEmail';
+import { colors, radii, fontFamily } from '../../theme/tokens';
 
 /**
  * `phase` tracks which screen the user sees:
@@ -133,7 +134,7 @@ export function LoginScreen() {
             value={email}
             onChangeText={handleChangeEmail}
             placeholder="nombre@ejemplo.com"
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.ink3}
             keyboardType="email-address"
             textContentType="emailAddress"
             autoComplete="email"
@@ -173,7 +174,7 @@ export function LoginScreen() {
             accessibilityState={{ disabled: !canSubmit, busy: isSubmitting }}
           >
             {isSubmitting ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={colors.white} />
             ) : (
               <Text style={styles.buttonText}>Enviar link mágico</Text>
             )}
@@ -227,7 +228,7 @@ function SentConfirmation({
         accessibilityState={{ busy: isResending }}
       >
         {isResending ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={colors.white} />
         ) : (
           <Text style={styles.buttonText}>Reenviar el link</Text>
         )}
@@ -251,21 +252,24 @@ const styles = StyleSheet.create({
   },
   container: {
     flexGrow: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     alignItems: 'stretch',
     justifyContent: 'center',
     padding: 24,
   },
   title: {
     fontSize: 32,
+    fontFamily: fontFamily.bold,
     fontWeight: '700',
     marginBottom: 8,
     textAlign: 'center',
+    color: colors.ink,
   },
   subtitle: {
     fontSize: 16,
     textAlign: 'center',
-    color: '#555',
+    fontFamily: fontFamily.regular,
+    color: colors.ink2,
     marginBottom: 32,
   },
   form: {
@@ -273,44 +277,49 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
+    fontFamily: fontFamily.semiBold,
     fontWeight: '600',
-    color: '#333',
+    color: colors.ink,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
+    borderColor: colors.border,
+    borderRadius: radii.sm,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#111',
+    fontFamily: fontFamily.regular,
+    color: colors.ink,
   },
   helperText: {
     fontSize: 13,
-    color: '#777',
+    fontFamily: fontFamily.regular,
+    color: colors.ink3,
   },
   errorText: {
     fontSize: 14,
-    color: '#b3261e',
+    color: colors.error,
+    fontFamily: fontFamily.medium,
     fontWeight: '500',
   },
   button: {
-    backgroundColor: '#2f6f4f',
-    borderRadius: 8,
+    backgroundColor: colors.brand,
+    borderRadius: radii.sm,
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 8,
   },
   buttonDisabled: {
-    backgroundColor: '#a8c3b6',
+    backgroundColor: colors.brandMid,
   },
   buttonPressed: {
     opacity: 0.85,
   },
   buttonText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 16,
+    fontFamily: fontFamily.semiBold,
     fontWeight: '600',
   },
   secondaryButton: {
@@ -320,17 +329,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   secondaryButtonText: {
-    color: '#2f6f4f',
+    color: colors.brand,
     fontSize: 15,
+    fontFamily: fontFamily.semiBold,
     fontWeight: '600',
   },
   sentBody: {
     fontSize: 16,
-    color: '#333',
+    color: colors.ink,
+    fontFamily: fontFamily.regular,
     textAlign: 'center',
     marginBottom: 12,
   },
   sentEmail: {
+    fontFamily: fontFamily.bold,
     fontWeight: '700',
   },
 });

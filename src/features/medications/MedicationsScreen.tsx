@@ -18,6 +18,7 @@ import {
   type Medication,
 } from './medicationsService';
 import { getCurrentUserFamilyId } from '../shifts/shiftsService';
+import { colors, fontFamily, radii } from '../../theme/tokens';
 
 /**
  * Cuánto tiempo se muestra la confirmación visual ("¡Dado a las HH:MM!")
@@ -324,7 +325,7 @@ function MedicationRow({ medication }: MedicationRowProps) {
             value={note}
             onChangeText={setNote}
             placeholder="Nota corta (opcional)"
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.ink3}
             maxLength={MAX_MEDICATION_NOTE_LENGTH}
             autoFocus
             accessibilityLabel={`Nota corta para la toma de ${medication.name}`}
@@ -353,7 +354,7 @@ function MedicationRow({ medication }: MedicationRowProps) {
       {rowPhase === 'saving' ? (
         <View style={styles.actionsRow}>
           <View style={[styles.markButton, styles.markButtonDisabled]}>
-            <ActivityIndicator color="#fff" size="small" />
+            <ActivityIndicator color={colors.white} size="small" />
           </View>
         </View>
       ) : null}
@@ -394,13 +395,15 @@ function MedicationRow({ medication }: MedicationRowProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     paddingTop: 24,
     paddingHorizontal: 16,
   },
   title: {
     fontSize: 22,
     fontWeight: '700',
+    fontFamily: fontFamily.bold,
+    color: colors.ink,
   },
   headerRow: {
     flexDirection: 'row',
@@ -413,26 +416,28 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   newButton: {
-    backgroundColor: '#2f6f4f',
-    borderRadius: 8,
+    backgroundColor: colors.brand,
+    borderRadius: radii.sm,
     paddingHorizontal: 14,
     paddingVertical: 8,
   },
   newButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontWeight: '600',
+    fontFamily: fontFamily.semiBold,
     fontSize: 14,
   },
   inviteButton: {
-    borderRadius: 8,
+    borderRadius: radii.sm,
     borderWidth: 1,
-    borderColor: '#2f6f4f',
+    borderColor: colors.brand,
     paddingHorizontal: 14,
     paddingVertical: 8,
   },
   inviteButtonText: {
-    color: '#2f6f4f',
+    color: colors.brand,
     fontWeight: '600',
+    fontFamily: fontFamily.semiBold,
     fontSize: 14,
   },
   centerContent: {
@@ -444,30 +449,34 @@ const styles = StyleSheet.create({
   },
   helperText: {
     fontSize: 14,
-    color: '#777',
+    fontFamily: fontFamily.regular,
+    color: colors.ink3,
     textAlign: 'center',
   },
   errorText: {
     fontSize: 15,
-    color: '#b3261e',
+    color: colors.error,
     fontWeight: '500',
+    fontFamily: fontFamily.medium,
     textAlign: 'center',
   },
   retryButton: {
     marginTop: 8,
-    backgroundColor: '#2f6f4f',
-    borderRadius: 8,
+    backgroundColor: colors.brand,
+    borderRadius: radii.sm,
     paddingHorizontal: 20,
     paddingVertical: 10,
   },
   retryButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontWeight: '600',
+    fontFamily: fontFamily.semiBold,
   },
   emptyTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    fontFamily: fontFamily.semiBold,
+    color: colors.ink,
     textAlign: 'center',
   },
   listContent: {
@@ -477,7 +486,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: colors.border,
     gap: 10,
   },
   medicationHeaderRow: {
@@ -493,19 +502,22 @@ const styles = StyleSheet.create({
   medicationName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#111',
+    fontFamily: fontFamily.bold,
+    color: colors.ink,
   },
   medicationSubtitle: {
     fontSize: 13,
-    color: '#666',
+    fontFamily: fontFamily.regular,
+    color: colors.ink2,
   },
   editButton: {
     paddingHorizontal: 8,
     paddingVertical: 6,
   },
   editButtonText: {
-    color: '#2f6f4f',
+    color: colors.brand,
     fontWeight: '600',
+    fontFamily: fontFamily.semiBold,
     fontSize: 13,
   },
   actionsRow: {
@@ -514,20 +526,21 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   markButton: {
-    backgroundColor: '#2f6f4f',
-    borderRadius: 8,
+    backgroundColor: colors.brand,
+    borderRadius: radii.sm,
     paddingHorizontal: 16,
     paddingVertical: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
   markButtonDisabled: {
-    backgroundColor: '#a8c3b6',
+    backgroundColor: colors.brandMid,
     paddingHorizontal: 24,
   },
   markButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontWeight: '600',
+    fontFamily: fontFamily.semiBold,
     fontSize: 14,
   },
   noteToggle: {
@@ -535,8 +548,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   noteToggleText: {
-    color: '#2f6f4f',
+    color: colors.brand,
     fontWeight: '600',
+    fontFamily: fontFamily.semiBold,
     fontSize: 14,
   },
   noteForm: {
@@ -544,12 +558,13 @@ const styles = StyleSheet.create({
   },
   noteInput: {
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
+    borderColor: colors.border,
+    borderRadius: radii.sm,
     paddingHorizontal: 12,
     paddingVertical: 8,
     fontSize: 14,
-    color: '#111',
+    fontFamily: fontFamily.regular,
+    color: colors.ink,
   },
   noteFormActions: {
     flexDirection: 'row',
@@ -562,17 +577,20 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   noteCancelButtonText: {
-    color: '#777',
+    color: colors.ink3,
     fontWeight: '600',
+    fontFamily: fontFamily.semiBold,
     fontSize: 14,
   },
   confirmationText: {
-    color: '#2f6f4f',
+    color: colors.brand,
     fontWeight: '700',
+    fontFamily: fontFamily.bold,
     fontSize: 14,
   },
   rowErrorText: {
-    color: '#b3261e',
+    color: colors.error,
+    fontFamily: fontFamily.regular,
     fontSize: 13,
     flexShrink: 1,
   },

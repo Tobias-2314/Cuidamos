@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 
 import { resolveCaredPersonContext } from './caredPersonContext';
 import { createMedicalContact } from './contactsService';
+import { colors, radii, fontFamily } from '../../theme/tokens';
 
 /**
  * `phase` sigue el mismo criterio de estados explícitos que
@@ -240,7 +241,7 @@ export function MedicalContactFormScreen() {
           accessibilityState={{ disabled: !canSubmit, busy: isSubmitting }}
         >
           {isSubmitting ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={colors.white} />
           ) : (
             <Text style={styles.buttonText}>Guardar médico</Text>
           )}
@@ -289,7 +290,7 @@ function FormField({
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor="#999"
+        placeholderTextColor={colors.ink3}
         editable={editable}
         multiline={multiline}
         keyboardType={keyboardType}
@@ -305,7 +306,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flexGrow: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     padding: 24,
     gap: 4,
   },
@@ -315,16 +316,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingHorizontal: 24,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
   },
   title: {
     fontSize: 22,
+    fontFamily: fontFamily.bold,
     fontWeight: '700',
     marginBottom: 4,
+    color: colors.ink,
   },
   subtitle: {
     fontSize: 14,
-    color: '#555',
+    fontFamily: fontFamily.regular,
+    color: colors.ink2,
     marginBottom: 16,
   },
   field: {
@@ -333,17 +337,19 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
+    fontFamily: fontFamily.semiBold,
     fontWeight: '600',
-    color: '#333',
+    color: colors.ink,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
+    borderColor: colors.border,
+    borderRadius: radii.sm,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#111',
+    fontFamily: fontFamily.regular,
+    color: colors.ink,
   },
   inputMultiline: {
     minHeight: 88,
@@ -351,49 +357,54 @@ const styles = StyleSheet.create({
   },
   helperText: {
     fontSize: 14,
-    color: '#777',
+    fontFamily: fontFamily.regular,
+    color: colors.ink3,
     textAlign: 'center',
   },
   errorText: {
     fontSize: 14,
-    color: '#b3261e',
+    color: colors.error,
+    fontFamily: fontFamily.medium,
     fontWeight: '500',
     marginBottom: 8,
   },
   emptyTitle: {
     fontSize: 16,
+    fontFamily: fontFamily.semiBold,
     fontWeight: '600',
-    color: '#333',
+    color: colors.ink,
     textAlign: 'center',
   },
   retryButton: {
     marginTop: 8,
-    backgroundColor: '#2f6f4f',
-    borderRadius: 8,
+    backgroundColor: colors.brand,
+    borderRadius: radii.sm,
     paddingHorizontal: 20,
     paddingVertical: 10,
   },
   retryButtonText: {
-    color: '#fff',
+    color: colors.white,
+    fontFamily: fontFamily.semiBold,
     fontWeight: '600',
   },
   button: {
-    backgroundColor: '#2f6f4f',
-    borderRadius: 8,
+    backgroundColor: colors.brand,
+    borderRadius: radii.sm,
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 8,
   },
   buttonDisabled: {
-    backgroundColor: '#a8c3b6',
+    backgroundColor: colors.brandMid,
   },
   buttonPressed: {
     opacity: 0.85,
   },
   buttonText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 16,
+    fontFamily: fontFamily.semiBold,
     fontWeight: '600',
   },
   secondaryButton: {
@@ -403,8 +414,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   secondaryButtonText: {
-    color: '#2f6f4f',
+    color: colors.brand,
     fontSize: 15,
+    fontFamily: fontFamily.semiBold,
     fontWeight: '600',
   },
 });

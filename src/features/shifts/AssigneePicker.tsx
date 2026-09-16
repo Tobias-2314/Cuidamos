@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { colors, fontFamily, radii } from '../../theme/tokens';
 import { getAssignedToLabel } from './assignedToLabel';
 import type { FamilyMember } from './shiftsService';
 
@@ -74,33 +75,37 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
+    borderColor: colors.border,
+    borderRadius: radii.sm,
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
   optionSelected: {
-    borderColor: '#2f6f4f',
-    backgroundColor: '#e6efe9',
+    borderColor: colors.brand,
+    backgroundColor: colors.brandLight,
   },
   optionLabel: {
     fontSize: 15,
-    color: '#111',
+    color: colors.ink,
     fontWeight: '500',
+    fontFamily: fontFamily.medium,
   },
   optionLabelSelected: {
-    color: '#1f4d37',
+    color: colors.brandDark,
     fontWeight: '700',
+    fontFamily: fontFamily.bold,
   },
   optionRole: {
     fontSize: 12,
-    color: '#777',
+    color: colors.ink2,
+    fontFamily: fontFamily.regular,
   },
   optionRoleSelected: {
-    color: '#2f6f4f',
+    color: colors.brand,
   },
   emptyText: {
     fontSize: 14,
-    color: '#777',
+    color: colors.ink2,
+    fontFamily: fontFamily.regular,
   },
 });

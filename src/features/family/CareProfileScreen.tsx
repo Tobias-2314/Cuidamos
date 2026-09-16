@@ -17,6 +17,7 @@ import {
   type CareProfile,
 } from './careProfileService';
 import { isValidCareProfileField, MAX_CARE_PROFILE_FIELD_LENGTH } from './careProfileValidation';
+import { colors, fontFamily, radii } from '../../theme/tokens';
 
 /**
  * `phase` -- mismo criterio explícito que el resto del repo (ver
@@ -160,7 +161,7 @@ export function CareProfileScreen() {
             value={name}
             onChangeText={setName}
             placeholder="Ej. María López"
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.ink3}
             editable={!isSubmitting}
             maxLength={MAX_CARE_PROFILE_FIELD_LENGTH}
             accessibilityLabel="Nombre"
@@ -174,7 +175,7 @@ export function CareProfileScreen() {
             value={relation}
             onChangeText={setRelation}
             placeholder="Ej. Hija, hijo, cónyuge, cuidador contratado"
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.ink3}
             editable={!isSubmitting}
             maxLength={MAX_CARE_PROFILE_FIELD_LENGTH}
             accessibilityLabel="Relación con la persona cuidada"
@@ -206,7 +207,7 @@ export function CareProfileScreen() {
           accessibilityState={{ disabled: !canSubmit, busy: isSubmitting }}
         >
           {isSubmitting ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={colors.white} />
           ) : (
             <Text style={styles.buttonText}>Guardar</Text>
           )}
@@ -222,7 +223,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flexGrow: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     padding: 24,
     gap: 4,
   },
@@ -232,37 +233,42 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingHorizontal: 24,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
   },
   title: {
     fontSize: 22,
     fontWeight: '700',
+    fontFamily: fontFamily.bold,
+    color: colors.ink,
     marginBottom: 12,
   },
   subtitle: {
     fontSize: 13,
-    color: '#777',
+    fontFamily: fontFamily.regular,
+    color: colors.ink3,
     marginBottom: 16,
   },
   accountBox: {
     padding: 16,
-    borderRadius: 8,
+    borderRadius: radii.sm,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
-    backgroundColor: '#f7f9f8',
+    borderColor: colors.border,
+    backgroundColor: colors.surface2,
     gap: 2,
     marginBottom: 20,
   },
   accountLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#777',
+    fontFamily: fontFamily.semiBold,
+    color: colors.ink3,
     marginTop: 8,
   },
   accountValue: {
     fontSize: 15,
-    color: '#111',
+    color: colors.ink,
     fontWeight: '500',
+    fontFamily: fontFamily.medium,
   },
   field: {
     gap: 6,
@@ -271,56 +277,62 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
+    fontFamily: fontFamily.semiBold,
+    color: colors.ink2,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
+    borderColor: colors.border,
+    borderRadius: radii.sm,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#111',
+    fontFamily: fontFamily.regular,
+    color: colors.ink,
   },
   helperText: {
     fontSize: 14,
-    color: '#777',
+    fontFamily: fontFamily.regular,
+    color: colors.ink3,
     textAlign: 'center',
   },
   errorText: {
     fontSize: 14,
-    color: '#b3261e',
+    color: colors.error,
     fontWeight: '500',
+    fontFamily: fontFamily.medium,
     marginBottom: 8,
   },
   retryButton: {
     marginTop: 8,
-    backgroundColor: '#2f6f4f',
-    borderRadius: 8,
+    backgroundColor: colors.brand,
+    borderRadius: radii.sm,
     paddingHorizontal: 20,
     paddingVertical: 10,
   },
   retryButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontWeight: '600',
+    fontFamily: fontFamily.semiBold,
   },
   button: {
-    backgroundColor: '#2f6f4f',
-    borderRadius: 8,
+    backgroundColor: colors.brand,
+    borderRadius: radii.sm,
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 8,
   },
   buttonDisabled: {
-    backgroundColor: '#a8c3b6',
+    backgroundColor: colors.brandMid,
   },
   buttonPressed: {
     opacity: 0.85,
   },
   buttonText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 16,
     fontWeight: '600',
+    fontFamily: fontFamily.semiBold,
   },
 });

@@ -18,6 +18,7 @@ import {
   type EmergencyContact,
   type MedicalContact,
 } from './contactsService';
+import { colors, radii, fontFamily } from '../../theme/tokens';
 
 /**
  * `phase` sigue el mismo criterio de estados explícitos que el resto de las
@@ -270,7 +271,7 @@ function EmergencyContactRow({ contact }: EmergencyContactRowProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
   },
   content: {
     padding: 16,
@@ -283,38 +284,44 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingHorizontal: 24,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
   },
   title: {
     fontSize: 22,
+    fontFamily: fontFamily.bold,
     fontWeight: '700',
+    color: colors.ink,
   },
   helperText: {
     fontSize: 14,
-    color: '#777',
+    fontFamily: fontFamily.regular,
+    color: colors.ink3,
     textAlign: 'center',
   },
   errorText: {
     fontSize: 15,
-    color: '#b3261e',
+    color: colors.error,
+    fontFamily: fontFamily.medium,
     fontWeight: '500',
     textAlign: 'center',
   },
   retryButton: {
     marginTop: 8,
-    backgroundColor: '#2f6f4f',
-    borderRadius: 8,
+    backgroundColor: colors.brand,
+    borderRadius: radii.sm,
     paddingHorizontal: 20,
     paddingVertical: 10,
   },
   retryButtonText: {
-    color: '#fff',
+    color: colors.white,
+    fontFamily: fontFamily.semiBold,
     fontWeight: '600',
   },
   emptyTitle: {
     fontSize: 16,
+    fontFamily: fontFamily.semiBold,
     fontWeight: '600',
-    color: '#333',
+    color: colors.ink,
     textAlign: 'center',
   },
   section: {
@@ -327,18 +334,20 @@ const styles = StyleSheet.create({
   },
   sectionHeading: {
     fontSize: 17,
+    fontFamily: fontFamily.bold,
     fontWeight: '700',
-    color: '#111',
+    color: colors.ink,
   },
   addButton: {
-    borderRadius: 8,
+    borderRadius: radii.sm,
     borderWidth: 1,
-    borderColor: '#2f6f4f',
+    borderColor: colors.brand,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
   addButtonText: {
-    color: '#2f6f4f',
+    color: colors.brand,
+    fontFamily: fontFamily.semiBold,
     fontWeight: '600',
     fontSize: 13,
   },
@@ -346,27 +355,31 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: colors.border,
     gap: 2,
   },
   contactName: {
     fontSize: 16,
+    fontFamily: fontFamily.bold,
     fontWeight: '700',
-    color: '#111',
+    color: colors.ink,
   },
   contactSubtitle: {
     fontSize: 13,
-    color: '#666',
+    fontFamily: fontFamily.regular,
+    color: colors.ink2,
   },
   contactPhone: {
     fontSize: 15,
-    color: '#2f6f4f',
+    color: colors.brand,
+    fontFamily: fontFamily.semiBold,
     fontWeight: '600',
     marginTop: 2,
   },
   contactNotes: {
     fontSize: 13,
-    color: '#777',
+    fontFamily: fontFamily.regular,
+    color: colors.ink3,
     fontStyle: 'italic',
     marginTop: 2,
   },

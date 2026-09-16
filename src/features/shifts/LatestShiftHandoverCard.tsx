@@ -5,6 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { getAssignedToLabel } from './assignedToLabel';
 import { formatShiftTimeRange } from './calendarSections';
 import { getLatestShiftHandoverForFamily, type LatestShiftHandover } from './shiftHandoversService';
+import { colors, fontFamily, radii } from '../../theme/tokens';
 
 interface LatestShiftHandoverCardProps {
   familyId: string;
@@ -25,13 +26,10 @@ interface LatestShiftHandoverCardProps {
  *      inició a propósito -- una falla de carga no debería verse como algo "roto" en la
  *      pantalla de inicio de la app (a diferencia de, por ejemplo, fallar al cargar el
  *      calendario, que sí bloquea una tarea real).
- *   2. BLOQUEANTE TÉCNICO conocido (ver NOTES del agente y el comentario de
- *      `getLatestShiftHandoverForFamily`): la RPC de lectura todavía no existe, así que
- *      HOY toda llamada real termina en este mismo camino ("function does not exist").
- *      Mostrar eso como un error rojo sería engañoso -- no es una falla real de la app,
- *      es una feature de Backend pendiente. El criterio de producto documentado para
- *      esta issue es explícito: "el estado 'empty' es el que se va a mostrar siempre en
- *      la práctica -- asegurate de que ese estado se vea bien y no como un error".
+ *   2. Mostrar un error rojo por cualquier falla de red/RPC sería engañoso para este
+ *      widget puntual -- el criterio de producto documentado para esta issue es
+ *      explícito: "el estado 'empty' es el que se va a mostrar siempre en la práctica --
+ *      asegurate de que ese estado se vea bien y no como un error".
  * Por eso cualquier error de carga se trata igual que "sin traspaso reciente todavía"
  * (mismo texto, mismo estilo) -- se loguea un warning en dev para no perder la señal
  * durante desarrollo, pero nunca se le muestra al usuario un mensaje de error para este
@@ -138,10 +136,10 @@ function HandoverFieldRow({ label, value }: HandoverFieldRowProps) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#f3f8f5',
-    borderRadius: 12,
+    backgroundColor: colors.surface2,
+    borderRadius: radii.md,
     borderWidth: 1,
-    borderColor: '#dfe9e3',
+    borderColor: colors.border,
     padding: 14,
     marginBottom: 16,
     gap: 4,
@@ -149,24 +147,29 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1f4a35',
+    fontFamily: fontFamily.bold,
+    color: colors.brandDark,
   },
   subtitle: {
     fontSize: 12,
-    color: '#4c6b5c',
+    color: colors.ink2,
+    fontFamily: fontFamily.regular,
     marginBottom: 4,
   },
   emptyText: {
     fontSize: 13,
-    color: '#5a7768',
+    color: colors.ink2,
+    fontFamily: fontFamily.regular,
   },
   fieldRow: {
     fontSize: 13,
-    color: '#222',
+    color: colors.ink,
+    fontFamily: fontFamily.regular,
     lineHeight: 18,
   },
   fieldLabel: {
     fontWeight: '600',
-    color: '#1f4a35',
+    fontFamily: fontFamily.semiBold,
+    color: colors.brandDark,
   },
 });

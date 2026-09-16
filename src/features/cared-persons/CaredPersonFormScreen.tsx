@@ -16,6 +16,7 @@ import { createCaredPerson } from './caredPersonsService';
 import { isValidBirthDateInput } from './caredPersonFormatting';
 import { getCaredPersonsForFamily } from '../medications/medicationsService';
 import { getCurrentUserFamilyId } from '../shifts/shiftsService';
+import { colors, radii, fontFamily } from '../../theme/tokens';
 
 /**
  * `phase` sigue el mismo criterio de estados explícitos que el resto de las
@@ -265,7 +266,7 @@ export function CaredPersonFormScreen() {
           accessibilityState={{ disabled: !canSubmit, busy: isSubmitting }}
         >
           {isSubmitting ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={colors.white} />
           ) : (
             <Text style={styles.buttonText}>Guardar</Text>
           )}
@@ -312,7 +313,7 @@ function FormField({
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor="#999"
+        placeholderTextColor={colors.ink3}
         editable={editable}
         multiline={multiline}
         accessibilityLabel={accessibilityLabel}
@@ -327,7 +328,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flexGrow: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     padding: 24,
     gap: 4,
   },
@@ -337,21 +338,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingHorizontal: 24,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
   },
   title: {
     fontSize: 22,
+    fontFamily: fontFamily.bold,
     fontWeight: '700',
     marginBottom: 4,
+    color: colors.ink,
   },
   subtitle: {
     fontSize: 14,
-    color: '#555',
+    fontFamily: fontFamily.regular,
+    color: colors.ink2,
     marginBottom: 8,
   },
   disclaimer: {
     fontSize: 12,
-    color: '#777',
+    fontFamily: fontFamily.regular,
+    color: colors.ink3,
     fontStyle: 'italic',
     marginBottom: 16,
   },
@@ -361,17 +366,19 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
+    fontFamily: fontFamily.semiBold,
     fontWeight: '600',
-    color: '#333',
+    color: colors.ink,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
+    borderColor: colors.border,
+    borderRadius: radii.sm,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#111',
+    fontFamily: fontFamily.regular,
+    color: colors.ink,
   },
   inputMultiline: {
     minHeight: 88,
@@ -379,36 +386,41 @@ const styles = StyleSheet.create({
   },
   fieldErrorText: {
     fontSize: 12,
-    color: '#b3261e',
+    fontFamily: fontFamily.regular,
+    color: colors.error,
     marginTop: -10,
     marginBottom: 14,
   },
   helperText: {
     fontSize: 14,
-    color: '#777',
+    fontFamily: fontFamily.regular,
+    color: colors.ink3,
     textAlign: 'center',
   },
   errorText: {
     fontSize: 14,
-    color: '#b3261e',
+    color: colors.error,
+    fontFamily: fontFamily.medium,
     fontWeight: '500',
     marginBottom: 8,
   },
   emptyTitle: {
     fontSize: 16,
+    fontFamily: fontFamily.semiBold,
     fontWeight: '600',
-    color: '#333',
+    color: colors.ink,
     textAlign: 'center',
   },
   retryButton: {
     marginTop: 8,
-    backgroundColor: '#2f6f4f',
-    borderRadius: 8,
+    backgroundColor: colors.brand,
+    borderRadius: radii.sm,
     paddingHorizontal: 20,
     paddingVertical: 10,
   },
   retryButtonText: {
-    color: '#fff',
+    color: colors.white,
+    fontFamily: fontFamily.semiBold,
     fontWeight: '600',
   },
   consentRow: {
@@ -423,42 +435,45 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 4,
     borderWidth: 2,
-    borderColor: '#2f6f4f',
+    borderColor: colors.brand,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
   },
   checkboxChecked: {
-    backgroundColor: '#2f6f4f',
+    backgroundColor: colors.brand,
   },
   checkboxMark: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 14,
+    fontFamily: fontFamily.bold,
     fontWeight: '700',
   },
   consentText: {
     flex: 1,
     fontSize: 13,
-    color: '#333',
+    fontFamily: fontFamily.regular,
+    color: colors.ink,
     lineHeight: 18,
   },
   button: {
-    backgroundColor: '#2f6f4f',
-    borderRadius: 8,
+    backgroundColor: colors.brand,
+    borderRadius: radii.sm,
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 8,
   },
   buttonDisabled: {
-    backgroundColor: '#a8c3b6',
+    backgroundColor: colors.brandMid,
   },
   buttonPressed: {
     opacity: 0.85,
   },
   buttonText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 16,
+    fontFamily: fontFamily.semiBold,
     fontWeight: '600',
   },
   secondaryButton: {
@@ -468,8 +483,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   secondaryButtonText: {
-    color: '#2f6f4f',
+    color: colors.brand,
     fontSize: 15,
+    fontFamily: fontFamily.semiBold,
     fontWeight: '600',
   },
 });

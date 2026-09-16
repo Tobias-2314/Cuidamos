@@ -12,6 +12,7 @@ import {
   type FamilyMember,
 } from './shiftsService';
 import { supabase } from '../../lib/supabase';
+import { colors, fontFamily, radii } from '../../theme/tokens';
 
 /**
  * PGM-28 -- Panel de reparto: es la diferenciación clave del producto (ver
@@ -241,7 +242,7 @@ function CoverageRow({ stat, allStats, currentUserId }: CoverageRowProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     paddingTop: 24,
     paddingHorizontal: 16,
   },
@@ -250,17 +251,21 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   backButtonText: {
-    color: '#2f6f4f',
+    color: colors.brand,
     fontWeight: '600',
+    fontFamily: fontFamily.semiBold,
     fontSize: 14,
   },
   title: {
     fontSize: 22,
     fontWeight: '700',
+    fontFamily: fontFamily.bold,
+    color: colors.ink,
   },
   subtitle: {
     fontSize: 14,
-    color: '#777',
+    color: colors.ink2,
+    fontFamily: fontFamily.regular,
     marginTop: 4,
     marginBottom: 16,
   },
@@ -277,13 +282,15 @@ const styles = StyleSheet.create({
   },
   navButtonText: {
     fontSize: 20,
-    color: '#2f6f4f',
+    color: colors.brand,
     fontWeight: '700',
+    fontFamily: fontFamily.bold,
   },
   navLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    fontFamily: fontFamily.semiBold,
+    color: colors.ink,
     minWidth: 160,
     textAlign: 'center',
   },
@@ -296,30 +303,34 @@ const styles = StyleSheet.create({
   },
   helperText: {
     fontSize: 14,
-    color: '#777',
+    color: colors.ink2,
+    fontFamily: fontFamily.regular,
     textAlign: 'center',
   },
   errorText: {
     fontSize: 15,
-    color: '#b3261e',
+    color: colors.error,
     fontWeight: '500',
+    fontFamily: fontFamily.medium,
     textAlign: 'center',
   },
   retryButton: {
     marginTop: 8,
-    backgroundColor: '#2f6f4f',
-    borderRadius: 8,
+    backgroundColor: colors.brand,
+    borderRadius: radii.sm,
     paddingHorizontal: 20,
     paddingVertical: 10,
   },
   retryButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontWeight: '600',
+    fontFamily: fontFamily.semiBold,
   },
   emptyTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    fontFamily: fontFamily.semiBold,
+    color: colors.ink,
     textAlign: 'center',
   },
   listContent: {
@@ -337,21 +348,23 @@ const styles = StyleSheet.create({
   rowLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222',
+    fontFamily: fontFamily.semiBold,
+    color: colors.ink,
   },
   rowStats: {
     fontSize: 13,
-    color: '#555',
+    color: colors.ink2,
+    fontFamily: fontFamily.regular,
   },
   barTrack: {
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#e6efe9',
+    backgroundColor: colors.brandLight,
     overflow: 'hidden',
   },
   barFill: {
     height: '100%',
     borderRadius: 5,
-    backgroundColor: '#2f6f4f',
+    backgroundColor: colors.brand,
   },
 });

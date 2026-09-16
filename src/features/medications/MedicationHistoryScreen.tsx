@@ -8,6 +8,7 @@ import { getMedicationLogsForFamily, type MedicationLogEntry } from './medicatio
 import { getMedicationTakenByLabel } from './medicationTakenByLabel';
 import { getCurrentUserFamilyId } from '../shifts/shiftsService';
 import { supabase } from '../../lib/supabase';
+import { colors, fontFamily, radii } from '../../theme/tokens';
 
 /**
  * PGM-33 -- Historial de tomas visible por TODOS los cuidadores de la familia (no solo
@@ -180,7 +181,7 @@ function HistoryRow({ entry, currentUserId }: HistoryRowProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     paddingTop: 24,
     paddingHorizontal: 16,
   },
@@ -189,17 +190,21 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   backButtonText: {
-    color: '#2f6f4f',
+    color: colors.brand,
     fontWeight: '600',
+    fontFamily: fontFamily.semiBold,
     fontSize: 14,
   },
   title: {
     fontSize: 22,
     fontWeight: '700',
+    fontFamily: fontFamily.bold,
+    color: colors.ink,
   },
   disclaimer: {
     fontSize: 12,
-    color: '#777',
+    color: colors.ink3,
+    fontFamily: fontFamily.regular,
     fontStyle: 'italic',
     marginTop: 4,
     marginBottom: 16,
@@ -213,30 +218,34 @@ const styles = StyleSheet.create({
   },
   helperText: {
     fontSize: 14,
-    color: '#777',
+    fontFamily: fontFamily.regular,
+    color: colors.ink3,
     textAlign: 'center',
   },
   errorText: {
     fontSize: 15,
-    color: '#b3261e',
+    color: colors.error,
     fontWeight: '500',
+    fontFamily: fontFamily.medium,
     textAlign: 'center',
   },
   retryButton: {
     marginTop: 8,
-    backgroundColor: '#2f6f4f',
-    borderRadius: 8,
+    backgroundColor: colors.brand,
+    borderRadius: radii.sm,
     paddingHorizontal: 20,
     paddingVertical: 10,
   },
   retryButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontWeight: '600',
+    fontFamily: fontFamily.semiBold,
   },
   emptyTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    fontFamily: fontFamily.semiBold,
+    color: colors.ink,
     textAlign: 'center',
   },
   listContent: {
@@ -245,7 +254,7 @@ const styles = StyleSheet.create({
   row: {
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: colors.border,
     gap: 4,
   },
   rowHeader: {
@@ -257,20 +266,24 @@ const styles = StyleSheet.create({
   medicationName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#111',
+    fontFamily: fontFamily.bold,
+    color: colors.ink,
   },
   takenAt: {
     fontSize: 13,
-    color: '#555',
+    fontFamily: fontFamily.regular,
+    color: colors.ink2,
   },
   takenBy: {
     fontSize: 14,
-    color: '#2f6f4f',
+    color: colors.brand,
     fontWeight: '600',
+    fontFamily: fontFamily.semiBold,
   },
   note: {
     fontSize: 13,
-    color: '#666',
+    fontFamily: fontFamily.regular,
+    color: colors.ink2,
     fontStyle: 'italic',
   },
 });

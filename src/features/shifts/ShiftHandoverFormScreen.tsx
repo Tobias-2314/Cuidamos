@@ -19,6 +19,7 @@ import {
 } from './shiftHandoverValidation';
 import { createShiftHandover } from './shiftHandoversService';
 import { getShiftById, type Shift } from './shiftsService';
+import { colors, fontFamily, radii } from '../../theme/tokens';
 
 interface ShiftHandoverFormScreenProps {
   shiftId: string;
@@ -43,11 +44,8 @@ type Phase = 'loading' | 'error' | 'ready';
  * se exige al menos uno completado antes de habilitar "Guardar" (decisión de
  * producto documentada en esa misma validación).
  *
- * BLOQUEANTE TÉCNICO heredado del Service (ver NOTES del agente y el
- * comentario de `createShiftHandover`): la RPC `create_shift_handover`
- * todavía no existe (issue futura de Backend). Esta pantalla ya está
- * completa -- UI, validación, loading/error/success -- y queda lista para
- * funcionar en cuanto esa RPC se agregue, sin ningún cambio acá.
+ * Llama a `createShiftHandover` (`shiftHandoversService.ts`), que a su vez invoca
+ * la RPC `create_shift_handover` (`supabase/migrations/20260916140000_shift_handovers_rpc.sql`).
  */
 export function ShiftHandoverFormScreen({ shiftId }: ShiftHandoverFormScreenProps) {
   const router = useRouter();
@@ -240,7 +238,7 @@ export function ShiftHandoverFormScreen({ shiftId }: ShiftHandoverFormScreenProp
           accessibilityState={{ disabled: !canSubmit, busy: isSubmitting }}
         >
           {isSubmitting ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={colors.white} />
           ) : (
             <Text style={styles.buttonText}>Guardar traspaso</Text>
           )}
@@ -285,7 +283,7 @@ function HandoverField({
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor="#999"
+        placeholderTextColor={colors.ink3}
         editable={editable}
         multiline
         maxLength={MAX_SHIFT_HANDOVER_FIELD_LENGTH}
@@ -301,7 +299,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flexGrow: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     padding: 24,
     gap: 4,
   },
@@ -311,21 +309,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingHorizontal: 24,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
   },
   title: {
     fontSize: 22,
     fontWeight: '700',
+    fontFamily: fontFamily.bold,
     marginBottom: 4,
+    color: colors.ink,
   },
   subtitle: {
     fontSize: 14,
-    color: '#555',
+    color: colors.ink2,
+    fontFamily: fontFamily.regular,
     marginBottom: 4,
   },
   helperIntro: {
     fontSize: 13,
-    color: '#777',
+    color: colors.ink2,
+    fontFamily: fontFamily.regular,
     marginBottom: 16,
   },
   field: {
@@ -335,16 +337,18 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
+    fontFamily: fontFamily.semiBold,
+    color: colors.ink,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
+    borderColor: colors.border,
+    borderRadius: radii.sm,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#111',
+    color: colors.ink,
+    fontFamily: fontFamily.regular,
   },
   inputMultiline: {
     minHeight: 72,
@@ -352,44 +356,48 @@ const styles = StyleSheet.create({
   },
   helperText: {
     fontSize: 14,
-    color: '#777',
+    color: colors.ink2,
+    fontFamily: fontFamily.regular,
     textAlign: 'center',
   },
   errorText: {
     fontSize: 14,
-    color: '#b3261e',
+    color: colors.error,
     fontWeight: '500',
+    fontFamily: fontFamily.medium,
     marginBottom: 8,
   },
   retryButton: {
     marginTop: 8,
-    backgroundColor: '#2f6f4f',
-    borderRadius: 8,
+    backgroundColor: colors.brand,
+    borderRadius: radii.sm,
     paddingHorizontal: 20,
     paddingVertical: 10,
   },
   retryButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontWeight: '600',
+    fontFamily: fontFamily.semiBold,
   },
   button: {
-    backgroundColor: '#2f6f4f',
-    borderRadius: 8,
+    backgroundColor: colors.brand,
+    borderRadius: radii.sm,
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 8,
   },
   buttonDisabled: {
-    backgroundColor: '#a8c3b6',
+    backgroundColor: colors.brandMid,
   },
   buttonPressed: {
     opacity: 0.85,
   },
   buttonText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 16,
     fontWeight: '600',
+    fontFamily: fontFamily.semiBold,
   },
   secondaryButton: {
     marginTop: 12,
@@ -398,8 +406,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   secondaryButtonText: {
-    color: '#2f6f4f',
+    color: colors.brand,
     fontSize: 15,
     fontWeight: '600',
+    fontFamily: fontFamily.semiBold,
   },
 });
