@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -8,9 +9,10 @@ import {
   View,
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as Linking from 'expo-linking';
 
-import { signInWithGoogle, signInWithMagicLink } from './authService';
+import { completeMagicLinkSignIn, signInWithGoogle, signInWithMagicLink } from './authService';
 import { isValidEmail } from './isValidEmail';
 import { colors, radii, fontFamily } from '../../theme/tokens';
 import { Button } from '../../components/Button';
@@ -48,7 +50,7 @@ function HeartLogo() {
  * - 'sent': the "revisá tu email" confirmation, with its own
  *   resend affordance (`isResending`/`resendError`).
  */
-type Phase = 'form' | 'sent';
+type Phase = 'form' | 'sent' | 'completing';
 
 /**
  * Pantalla de entrada de la app (alta + login del cuidador).
@@ -60,8 +62,9 @@ type Phase = 'form' | 'sent';
  */
 export function LoginScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ code?: string }>();
   const [email, setEmail] = useState('');
-  const [phase, setPhase] = useState<Phase>('form');
+  const [phase, setPhase] = useState<Phase>(params.code ? 'completing' : 'form');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -75,6 +78,40 @@ export function LoginScreen() {
 
   const canSubmit = !isSubmitting && isValidEmail(email);
 
+  // Volvimos por el deep link del magic link (`cuidamos:///?code=...`,
+  // tocado desde el email) -- expo-router ya nos entrega el `code` como
+  // route param. Lo canjeamos una sola vez al montar.
+  useEffect(() => {
+    if (!params.code) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function complete(code: string) {
+      const result = await completeMagicLinkSignIn(code);
+
+      if (cancelled) {
+        return;
+      }
+
+      if (result.error) {
+        setFormError(result.error.message);
+        setPhase('form');
+        return;
+      }
+
+      router.replace('/calendar');
+    }
+
+    complete(params.code);
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo corre una vez al montar con el `code` inicial
+  }, []);
+
   async function handleSendMagicLink() {
     if (!isValidEmail(email) || isSubmitting) {
       return;
@@ -83,7 +120,7 @@ export function LoginScreen() {
     setIsSubmitting(true);
     setFormError(null);
 
-    const result = await signInWithMagicLink(email);
+    const result = await signInWithMagicLink(email, { emailRedirectTo: Linking.createURL('/') });
 
     setIsSubmitting(false);
 
@@ -127,7 +164,9 @@ export function LoginScreen() {
     setIsResending(true);
     setResendError(null);
 
-    const result = await signInWithMagicLink(sentToEmail);
+    const result = await signInWithMagicLink(sentToEmail, {
+      emailRedirectTo: Linking.createURL('/'),
+    });
 
     setIsResending(false);
 
@@ -148,6 +187,15 @@ export function LoginScreen() {
     if (formError) {
       setFormError(null);
     }
+  }
+
+  if (phase === 'completing') {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator color={colors.brand} />
+        <Text style={styles.helperText}>Confirmando tu acceso…</Text>
+      </View>
+    );
   }
 
   if (phase === 'sent' && sentToEmail) {

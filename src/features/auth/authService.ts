@@ -27,8 +27,7 @@ export interface MagicLinkOptions {
   /**
    * Deep link the user lands on after tapping the magic link email.
    * Left undefined to fall back to the Supabase project's configured
-   * Site URL. The Frontend issue (PGM-17) is responsible for supplying
-   * a concrete deep link once the callback route exists.
+   * Site URL (only reachable from the web preview, not the native app).
    */
   emailRedirectTo?: string;
 }
@@ -50,6 +49,26 @@ function normalizeAuthError(error: AuthError): AuthServiceError {
 
 function normalizeUnexpectedError(context: string, error: unknown): AuthServiceError {
   return normalizeUnexpectedServiceError('authService', context, error, GENERIC_ERROR_MESSAGE);
+}
+
+/**
+ * Canjea un `code` de PKCE (llega por query param en el deep link de vuelta,
+ * sea de Google o del magic link) por una sesión real. Compartido por
+ * `signInWithGoogle` y `completeMagicLinkSignIn` -- mismo paso final, dos
+ * orígenes distintos de `code`.
+ */
+async function exchangeCode(code: string): Promise<AuthResult<{ session: Session }>> {
+  const { data: sessionData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+
+  if (exchangeError) {
+    return { data: null, error: normalizeAuthError(exchangeError) };
+  }
+
+  if (!sessionData.session) {
+    return { data: null, error: { code: 'no_session', message: GENERIC_ERROR_MESSAGE } };
+  }
+
+  return { data: { session: sessionData.session }, error: null };
 }
 
 /**
@@ -142,20 +161,27 @@ export async function signInWithGoogle(): Promise<AuthResult<{ session: Session 
       return { data: null, error: { code: 'oauth_no_code', message: GENERIC_ERROR_MESSAGE } };
     }
 
-    const { data: sessionData, error: exchangeError } =
-      await supabase.auth.exchangeCodeForSession(code);
-
-    if (exchangeError) {
-      return { data: null, error: normalizeAuthError(exchangeError) };
-    }
-
-    if (!sessionData.session) {
-      return { data: null, error: { code: 'oauth_no_session', message: GENERIC_ERROR_MESSAGE } };
-    }
-
-    return { data: { session: sessionData.session }, error: null };
+    return await exchangeCode(code);
   } catch (err: unknown) {
     return { data: null, error: normalizeUnexpectedError('signInWithGoogle', err) };
+  }
+}
+
+/**
+ * Completa el login por magic link: recibe el `code` que llega en la URL
+ * del deep link cuando el usuario toca el link del email (`cuidamos:///?code=...`,
+ * ver `emailRedirectTo` en `signInWithMagicLink`) y lo canjea por una sesión.
+ *
+ * `LoginScreen` es quien detecta ese `code` en sus route params (expo-router
+ * ya lo parsea al abrir la app por el deep link) y llama a esta función --
+ * mismo patrón que `signInWithGoogle`, pero acá el `code` no lo trae un
+ * popup de browser sino el propio mount de la pantalla.
+ */
+export async function completeMagicLinkSignIn(code: string): Promise<AuthResult<{ session: Session }>> {
+  try {
+    return await exchangeCode(code);
+  } catch (err: unknown) {
+    return { data: null, error: normalizeUnexpectedError('completeMagicLinkSignIn', err) };
   }
 }
 
