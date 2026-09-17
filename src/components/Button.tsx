@@ -1,8 +1,20 @@
 import { useState, type ReactNode } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { MotiView } from 'moti';
+import * as Haptics from 'expo-haptics';
 
 import { colors, radii, fontFamily } from '../theme/tokens';
+
+function triggerPressHaptic() {
+  // expo-haptics no tiene sentido (ni feedback real) en el preview web.
+  if (Platform.OS === 'web') {
+    return;
+  }
+  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {
+    // Dispositivo sin soporte de haptics -- degradar en silencio, el botón
+    // sigue funcionando perfecto solo con el feedback visual.
+  });
+}
 
 export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
 export type ButtonSize = 'sm' | 'md' | 'lg';
@@ -80,7 +92,12 @@ export function Button({
     >
       <Pressable
         onPress={onPress}
-        onPressIn={() => setIsPressed(true)}
+        onPressIn={() => {
+          setIsPressed(true);
+          if (!isDisabled) {
+            triggerPressHaptic();
+          }
+        }}
         onPressOut={() => setIsPressed(false)}
         disabled={isDisabled}
         accessibilityRole="button"
