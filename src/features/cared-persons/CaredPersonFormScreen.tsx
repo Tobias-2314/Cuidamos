@@ -7,7 +7,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -16,7 +15,10 @@ import { createCaredPerson } from './caredPersonsService';
 import { isValidBirthDateInput } from './caredPersonFormatting';
 import { getCaredPersonsForFamily } from '../medications/medicationsService';
 import { getCurrentUserFamilyId } from '../shifts/shiftsService';
-import { colors, radii, fontFamily } from '../../theme/tokens';
+import { colors, fontFamily } from '../../theme/tokens';
+import { Button } from '../../components/Button';
+import { TextField } from '../../components/TextField';
+import { AppHeader } from '../../components/AppHeader';
 
 /**
  * `phase` sigue el mismo criterio de estados explícitos que el resto de las
@@ -148,14 +150,7 @@ export function CaredPersonFormScreen() {
         <Text style={styles.errorText} accessibilityRole="alert" accessibilityLiveRegion="assertive">
           {loadErrorMessage}
         </Text>
-        <Pressable
-          style={styles.retryButton}
-          onPress={loadInitialData}
-          accessibilityRole="button"
-          accessibilityLabel="Reintentar"
-        >
-          <Text style={styles.retryButtonText}>Reintentar</Text>
-        </Pressable>
+        <Button label="Reintentar" onPress={loadInitialData} />
       </View>
     );
   }
@@ -168,14 +163,7 @@ export function CaredPersonFormScreen() {
           Creá una familia para empezar a cargar el perfil de la persona cuidada, o pedile a
           quien te invitó el link de invitación.
         </Text>
-        <Pressable
-          style={styles.retryButton}
-          onPress={() => router.push('/family/create')}
-          accessibilityRole="button"
-          accessibilityLabel="Crear familia"
-        >
-          <Text style={styles.retryButtonText}>Crear familia</Text>
-        </Pressable>
+        <Button label="Crear familia" onPress={() => router.push('/family/create')} />
       </View>
     );
   }
@@ -185,8 +173,8 @@ export function CaredPersonFormScreen() {
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <AppHeader title="Persona cuidada" onBack={() => router.back()} />
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>Persona cuidada</Text>
         <Text style={styles.subtitle}>
           Cargá el perfil de la persona a la que tu familia cuida. Vas a poder agregar médicos y
           contactos de emergencia más adelante.
@@ -197,34 +185,41 @@ export function CaredPersonFormScreen() {
           cargo.
         </Text>
 
-        <FormField
-          label="Nombre completo"
-          value={fullName}
-          onChangeText={setFullName}
-          placeholder="Ej. María García"
-          editable={!isSubmitting}
-          accessibilityLabel="Nombre completo de la persona cuidada"
-        />
+        <View style={styles.field}>
+          <TextField
+            label="Nombre completo"
+            value={fullName}
+            onChangeText={setFullName}
+            placeholder="Ej. María García"
+            editable={!isSubmitting}
+            accessibilityLabel="Nombre completo de la persona cuidada"
+          />
+        </View>
 
-        <FormField
-          label="Fecha de nacimiento (opcional)"
-          value={birthDate}
-          onChangeText={setBirthDate}
-          placeholder="AAAA-MM-DD"
-          editable={!isSubmitting}
-          accessibilityLabel="Fecha de nacimiento de la persona cuidada"
-        />
-        {birthDateError ? <Text style={styles.fieldErrorText}>{birthDateError}</Text> : null}
+        <View style={styles.field}>
+          <TextField
+            label="Fecha de nacimiento (opcional)"
+            value={birthDate}
+            onChangeText={setBirthDate}
+            placeholder="AAAA-MM-DD"
+            editable={!isSubmitting}
+            accessibilityLabel="Fecha de nacimiento de la persona cuidada"
+            error={birthDateError}
+          />
+        </View>
 
-        <FormField
-          label="Notas de condición (opcional)"
-          value={conditionNotes}
-          onChangeText={setConditionNotes}
-          placeholder="Ej. movilidad reducida, requiere acompañamiento para caminar"
-          editable={!isSubmitting}
-          accessibilityLabel="Notas de condición de la persona cuidada"
-          multiline
-        />
+        <View style={styles.field}>
+          <TextField
+            label="Notas de condición (opcional)"
+            value={conditionNotes}
+            onChangeText={setConditionNotes}
+            placeholder="Ej. movilidad reducida, requiere acompañamiento para caminar"
+            editable={!isSubmitting}
+            accessibilityLabel="Notas de condición de la persona cuidada"
+            multiline
+            style={styles.inputMultiline}
+          />
+        </View>
 
         <Pressable
           style={styles.consentRow}
@@ -253,72 +248,25 @@ export function CaredPersonFormScreen() {
           </Text>
         ) : null}
 
-        <Pressable
-          style={({ pressed }) => [
-            styles.button,
-            !canSubmit && styles.buttonDisabled,
-            pressed && canSubmit && styles.buttonPressed,
-          ]}
+        <Button
+          label="Guardar"
           onPress={handleSubmit}
           disabled={!canSubmit}
-          accessibilityRole="button"
+          loading={isSubmitting}
           accessibilityLabel="Guardar persona cuidada"
-          accessibilityState={{ disabled: !canSubmit, busy: isSubmitting }}
-        >
-          {isSubmitting ? (
-            <ActivityIndicator color={colors.white} />
-          ) : (
-            <Text style={styles.buttonText}>Guardar</Text>
-          )}
-        </Pressable>
+          size="lg"
+          full
+        />
 
-        <Pressable
-          style={styles.secondaryButton}
+        <Button
+          label="Cancelar"
           onPress={() => router.back()}
           disabled={isSubmitting}
-          accessibilityRole="button"
-          accessibilityLabel="Cancelar"
-        >
-          <Text style={styles.secondaryButtonText}>Cancelar</Text>
-        </Pressable>
+          variant="ghost"
+          full
+        />
       </ScrollView>
     </KeyboardAvoidingView>
-  );
-}
-
-interface FormFieldProps {
-  label: string;
-  value: string;
-  onChangeText: (value: string) => void;
-  placeholder: string;
-  editable: boolean;
-  accessibilityLabel: string;
-  multiline?: boolean;
-}
-
-function FormField({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  editable,
-  accessibilityLabel,
-  multiline,
-}: FormFieldProps) {
-  return (
-    <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
-      <TextInput
-        style={[styles.input, multiline && styles.inputMultiline]}
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={colors.ink3}
-        editable={editable}
-        multiline={multiline}
-        accessibilityLabel={accessibilityLabel}
-      />
-    </View>
   );
 }
 
@@ -329,7 +277,7 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     backgroundColor: colors.surface,
-    padding: 24,
+    padding: 20,
     gap: 4,
   },
   centerContainer: {
@@ -340,17 +288,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     backgroundColor: colors.surface,
   },
-  title: {
-    fontSize: 22,
-    fontFamily: fontFamily.bold,
-    fontWeight: '700',
-    marginBottom: 4,
-    color: colors.ink,
-  },
   subtitle: {
     fontSize: 14,
     fontFamily: fontFamily.regular,
     color: colors.ink2,
+    marginTop: 12,
     marginBottom: 8,
   },
   disclaimer: {
@@ -361,35 +303,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   field: {
-    gap: 6,
     marginBottom: 14,
-  },
-  label: {
-    fontSize: 14,
-    fontFamily: fontFamily.semiBold,
-    fontWeight: '600',
-    color: colors.ink,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.sm,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    fontFamily: fontFamily.regular,
-    color: colors.ink,
   },
   inputMultiline: {
     minHeight: 88,
     textAlignVertical: 'top',
-  },
-  fieldErrorText: {
-    fontSize: 12,
-    fontFamily: fontFamily.regular,
-    color: colors.error,
-    marginTop: -10,
-    marginBottom: 14,
   },
   helperText: {
     fontSize: 14,
@@ -410,18 +328,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.ink,
     textAlign: 'center',
-  },
-  retryButton: {
-    marginTop: 8,
-    backgroundColor: colors.brand,
-    borderRadius: radii.sm,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  retryButtonText: {
-    color: colors.white,
-    fontFamily: fontFamily.semiBold,
-    fontWeight: '600',
   },
   consentRow: {
     flexDirection: 'row',
@@ -455,37 +361,5 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.regular,
     color: colors.ink,
     lineHeight: 18,
-  },
-  button: {
-    backgroundColor: colors.brand,
-    borderRadius: radii.sm,
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 8,
-  },
-  buttonDisabled: {
-    backgroundColor: colors.brandMid,
-  },
-  buttonPressed: {
-    opacity: 0.85,
-  },
-  buttonText: {
-    color: colors.white,
-    fontSize: 16,
-    fontFamily: fontFamily.semiBold,
-    fontWeight: '600',
-  },
-  secondaryButton: {
-    marginTop: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  secondaryButtonText: {
-    color: colors.brand,
-    fontSize: 15,
-    fontFamily: fontFamily.semiBold,
-    fontWeight: '600',
   },
 });

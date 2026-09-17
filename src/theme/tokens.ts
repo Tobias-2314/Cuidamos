@@ -33,11 +33,23 @@ export const colors = {
   white: '#FFFFFF',
 } as const;
 
+/**
+ * `sm`/`md`/`lg`/`xl` calcan el `@theme` custom del prototipo de Figma Make
+ * (`--radius-sm/md/lg/xl`). `card`/`badge` cubren los dos radios que el
+ * prototipo también usa (`rounded-2xl`/`rounded-3xl`) pero que Tailwind
+ * resuelve con sus valores default porque el `@theme` nunca los redefinió
+ * -- no seguían la escala sm→xl, así que los sumamos aparte en vez de
+ * forzarlos a encajar ahí.
+ */
 export const radii = {
   sm: 10,
   md: 14,
   lg: 20,
   xl: 28,
+  /** `rounded-2xl` (default de Tailwind, 16px) -- usado por `Card`. */
+  card: 16,
+  /** `rounded-3xl` (default de Tailwind, 24px) -- logo del login, badges grandes. */
+  badge: 24,
 } as const;
 
 export const spacing = {

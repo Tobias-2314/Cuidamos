@@ -1,5 +1,8 @@
 import { AuthError } from '@supabase/supabase-js';
 
+import { supabase } from '../../../lib/supabase';
+import { getSession, onAuthStateChange, signInWithMagicLink, signOut } from '../authService';
+
 jest.mock('../../../lib/supabase', () => ({
   supabase: {
     auth: {
@@ -10,9 +13,6 @@ jest.mock('../../../lib/supabase', () => ({
     },
   },
 }));
-
-import { supabase } from '../../../lib/supabase';
-import { getSession, onAuthStateChange, signInWithMagicLink, signOut } from '../authService';
 
 const mockedSignInWithOtp = supabase.auth.signInWithOtp as jest.Mock;
 const mockedSignOut = supabase.auth.signOut as jest.Mock;

@@ -19,6 +19,11 @@ import {
 } from './medicationsService';
 import { getCurrentUserFamilyId } from '../shifts/shiftsService';
 import { colors, fontFamily, radii } from '../../theme/tokens';
+import { Button } from '../../components/Button';
+import { Card } from '../../components/Card';
+import { EmptyState } from '../../components/EmptyState';
+import { IconButton } from '../../components/IconButton';
+import { IconPill, IconPlus } from '../../components/icons';
 
 /**
  * Cuánto tiempo se muestra la confirmación visual ("¡Dado a las HH:MM!")
@@ -104,32 +109,19 @@ export function MedicationsScreen() {
         <View style={styles.headerActions}>
           {phase === 'ready' ? (
             <Pressable
-              style={styles.inviteButton}
-              onPress={() => router.push('/family/invite')}
-              accessibilityRole="button"
-              accessibilityLabel="Invitar a un cuidador"
-            >
-              <Text style={styles.inviteButtonText}>Invitar</Text>
-            </Pressable>
-          ) : null}
-          {phase === 'ready' ? (
-            <Pressable
-              style={styles.inviteButton}
               onPress={() => router.push('/medications/history')}
               accessibilityRole="button"
               accessibilityLabel="Ver historial de tomas"
             >
-              <Text style={styles.inviteButtonText}>Historial</Text>
+              <Text style={styles.historyLink}>Historial</Text>
             </Pressable>
           ) : null}
-          <Pressable
-            style={styles.newButton}
+          <IconButton
+            icon={<IconPlus size="sm" color={colors.white} />}
             onPress={() => router.push('/medications/new')}
-            accessibilityRole="button"
             accessibilityLabel="Agregar medicamento"
-          >
-            <Text style={styles.newButtonText}>+ Nuevo</Text>
-          </Pressable>
+            variant="solid"
+          />
         </View>
       </View>
 
@@ -145,14 +137,7 @@ export function MedicationsScreen() {
           <Text style={styles.errorText} accessibilityRole="alert" accessibilityLiveRegion="assertive">
             {errorMessage}
           </Text>
-          <Pressable
-            style={styles.retryButton}
-            onPress={handleRetry}
-            accessibilityRole="button"
-            accessibilityLabel="Reintentar"
-          >
-            <Text style={styles.retryButtonText}>Reintentar</Text>
-          </Pressable>
+          <Button label="Reintentar" onPress={handleRetry} />
         </View>
       ) : null}
 
@@ -163,29 +148,24 @@ export function MedicationsScreen() {
             Creá una familia para empezar a cargar medicamentos, o pedile a quien te invitó el
             link de invitación.
           </Text>
-          <Pressable
-            style={styles.retryButton}
-            onPress={() => router.push('/family/create')}
-            accessibilityRole="button"
-            accessibilityLabel="Crear familia"
-          >
-            <Text style={styles.retryButtonText}>Crear familia</Text>
-          </Pressable>
+          <Button label="Crear familia" onPress={() => router.push('/family/create')} />
         </View>
       ) : null}
 
       {phase === 'ready' && medications.length === 0 ? (
-        <View style={styles.centerContent}>
-          <Text style={styles.emptyTitle}>Todavía no hay medicamentos cargados.</Text>
-          <Pressable
-            style={styles.retryButton}
-            onPress={() => router.push('/medications/new')}
-            accessibilityRole="button"
-            accessibilityLabel="Agregar el primer medicamento"
-          >
-            <Text style={styles.retryButtonText}>Agregar medicamento</Text>
-          </Pressable>
-        </View>
+        <EmptyState
+          icon={<IconPill size="lg" color={colors.brand} />}
+          title="Sin medicamentos registrados"
+          desc="Agregá los medicamentos de la persona cuidada para registrar y coordinar las tomas diarias."
+          action={
+            <Button
+              label="Agregar medicamento"
+              onPress={() => router.push('/medications/new')}
+              accessibilityLabel="Agregar el primer medicamento"
+              full
+            />
+          }
+        />
       ) : null}
 
       {phase === 'ready' && medications.length > 0 ? (
@@ -281,8 +261,11 @@ function MedicationRow({ medication }: MedicationRowProps) {
   }
 
   return (
-    <View style={styles.medicationRow}>
+    <Card style={styles.medicationRow}>
       <View style={styles.medicationHeaderRow}>
+        <View style={styles.medicationIconBadge}>
+          <IconPill size="sm" color={colors.brand} />
+        </View>
         <View style={styles.medicationInfo}>
           <Text style={styles.medicationName}>{medication.name}</Text>
           <Text style={styles.medicationSubtitle}>{formatMedicationSubtitle(medication)}</Text>
@@ -388,7 +371,7 @@ function MedicationRow({ medication }: MedicationRowProps) {
           </Pressable>
         </View>
       ) : null}
-    </View>
+    </Card>
   );
 }
 
@@ -415,31 +398,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
-  newButton: {
-    backgroundColor: colors.brand,
-    borderRadius: radii.sm,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  newButtonText: {
-    color: colors.white,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
-    fontSize: 14,
-  },
-  inviteButton: {
-    borderRadius: radii.sm,
-    borderWidth: 1,
-    borderColor: colors.brand,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  inviteButtonText: {
-    color: colors.brand,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
-    fontSize: 14,
-  },
   centerContent: {
     flex: 1,
     alignItems: 'center',
@@ -460,18 +418,6 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.medium,
     textAlign: 'center',
   },
-  retryButton: {
-    marginTop: 8,
-    backgroundColor: colors.brand,
-    borderRadius: radii.sm,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  retryButtonText: {
-    color: colors.white,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
-  },
   emptyTitle: {
     fontSize: 16,
     fontWeight: '600',
@@ -481,19 +427,30 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: 24,
+    gap: 10,
+  },
+  historyLink: {
+    fontSize: 14,
+    fontFamily: fontFamily.semiBold,
+    fontWeight: '600',
+    color: colors.brand,
   },
   medicationRow: {
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
+    padding: 14,
     gap: 10,
   },
   medicationHeaderRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 8,
+    alignItems: 'center',
+    gap: 10,
+  },
+  medicationIconBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: radii.card,
+    backgroundColor: colors.brandLight,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   medicationInfo: {
     flex: 1,

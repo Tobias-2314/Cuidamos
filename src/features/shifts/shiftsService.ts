@@ -1,20 +1,21 @@
 import { z } from 'zod';
 
 import { supabase } from '../../lib/supabase';
+import {
+  normalizeUnexpectedError as normalizeUnexpectedServiceError,
+  type ServiceError,
+  type ServiceResult,
+} from '../../lib/serviceResult';
 
 /**
  * Normalized error shape returned by every function in this module — same
- * pattern as `authService.ts` (PGM-16/17). Never carries raw Supabase error
- * payloads, only a stable `code` and a user-facing `message`.
+ * shared shape as every other `*Service.ts` (see `lib/serviceResult.ts`).
+ * Never carries raw Supabase error payloads, only a stable `code` and a
+ * user-facing `message`.
  */
-export interface ShiftsServiceError {
-  code: string;
-  message: string;
-}
+export type ShiftsServiceError = ServiceError;
 
-export type ShiftsResult<T> =
-  | { data: T; error: null }
-  | { data: null; error: ShiftsServiceError };
+export type ShiftsResult<T> = ServiceResult<T>;
 
 export type ShiftStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
 
@@ -70,6 +71,14 @@ export interface CreateShiftInput {
 
 const GENERIC_ERROR_MESSAGE = 'No pudimos cargar los turnos. Intentá de nuevo.';
 const GENERIC_WRITE_ERROR_MESSAGE = 'No pudimos guardar el turno. Intentá de nuevo.';
+/**
+ * `getCurrentUserFamilyId` vive acá por historia (PGM-27) pero la reutilizan
+ * 11 pantallas fuera de turnos (familia, medicación, personas cuidadas) --
+ * necesita copy propio en vez de `GENERIC_ERROR_MESSAGE`, que asume contexto
+ * de calendario y quedaba mal en, por ejemplo, la pantalla de crear familia.
+ */
+const GENERIC_FAMILY_LOOKUP_ERROR_MESSAGE = 'No pudimos cargar tu familia. Intentá de nuevo.';
+const NOT_AUTHENTICATED_MESSAGE = 'Iniciá sesión para continuar.';
 
 const shiftStatusSchema = z.enum(['scheduled', 'in_progress', 'completed', 'cancelled']);
 
@@ -100,17 +109,12 @@ const shiftRowSchema = z.object({
 
 type ShiftRow = z.infer<typeof shiftRowSchema>;
 
-function normalizeUnexpectedError(context: string, _err: unknown): ShiftsServiceError {
-  // Never surface the raw error — it may wrap a network response or other
-  // sensitive request/response data. Log only a non-sensitive marker.
-  if (process.env.NODE_ENV !== 'production') {
-    console.warn(`[shiftsService] unexpected error in ${context}`);
-  }
-
-  return {
-    code: 'unexpected_error',
-    message: GENERIC_ERROR_MESSAGE,
-  };
+function normalizeUnexpectedError(
+  context: string,
+  err: unknown,
+  message: string = GENERIC_ERROR_MESSAGE
+): ShiftsServiceError {
+  return normalizeUnexpectedServiceError('shiftsService', context, err, message);
 }
 
 function mapShiftRow(row: ShiftRow, caredPersonNamesById: ReadonlyMap<string, string>): Shift {
@@ -193,14 +197,17 @@ export async function getCurrentUserFamilyId(): Promise<ShiftsResult<string | nu
     const { data: userData, error: userError } = await supabase.auth.getUser();
 
     if (userError) {
-      return { data: null, error: { code: 'auth_error', message: GENERIC_ERROR_MESSAGE } };
+      return {
+        data: null,
+        error: { code: 'auth_error', message: GENERIC_FAMILY_LOOKUP_ERROR_MESSAGE },
+      };
     }
 
     const userId = userData.user?.id;
     if (!userId) {
       return {
         data: null,
-        error: { code: 'not_authenticated', message: 'Iniciá sesión para ver tu calendario.' },
+        error: { code: 'not_authenticated', message: NOT_AUTHENTICATED_MESSAGE },
       };
     }
 
@@ -214,14 +221,17 @@ export async function getCurrentUserFamilyId(): Promise<ShiftsResult<string | nu
     if (error) {
       return {
         data: null,
-        error: { code: error.code || 'db_error', message: GENERIC_ERROR_MESSAGE },
+        error: { code: error.code || 'db_error', message: GENERIC_FAMILY_LOOKUP_ERROR_MESSAGE },
       };
     }
 
     const familyId = (data as { family_id?: string } | null)?.family_id ?? null;
     return { data: familyId, error: null };
   } catch (err: unknown) {
-    return { data: null, error: normalizeUnexpectedError('getCurrentUserFamilyId', err) };
+    return {
+      data: null,
+      error: normalizeUnexpectedError('getCurrentUserFamilyId', err, GENERIC_FAMILY_LOOKUP_ERROR_MESSAGE),
+    };
   }
 }
 

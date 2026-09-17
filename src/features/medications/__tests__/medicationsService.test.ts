@@ -1,10 +1,3 @@
-jest.mock('../../../lib/supabase', () => ({
-  supabase: {
-    rpc: jest.fn(),
-    from: jest.fn(),
-  },
-}));
-
 import { supabase } from '../../../lib/supabase';
 import {
   createMedication,
@@ -15,6 +8,13 @@ import {
   recordMedicationTaken,
   updateMedication,
 } from '../medicationsService';
+
+jest.mock('../../../lib/supabase', () => ({
+  supabase: {
+    rpc: jest.fn(),
+    from: jest.fn(),
+  },
+}));
 
 const mockedRpc = supabase.rpc as jest.Mock;
 const mockedFrom = supabase.from as jest.Mock;

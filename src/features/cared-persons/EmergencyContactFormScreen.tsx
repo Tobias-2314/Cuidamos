@@ -3,18 +3,20 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { resolveCaredPersonContext } from './caredPersonContext';
 import { createEmergencyContact } from './contactsService';
-import { colors, radii, fontFamily } from '../../theme/tokens';
+import { colors, fontFamily, radii } from '../../theme/tokens';
+import { Button } from '../../components/Button';
+import { TextField } from '../../components/TextField';
+import { AppHeader } from '../../components/AppHeader';
+import { IconAlert } from '../../components/icons';
 
 /**
  * `phase` sigue el mismo criterio que `MedicalContactFormScreen` -- ver ese
@@ -116,14 +118,7 @@ export function EmergencyContactFormScreen() {
         <Text style={styles.errorText} accessibilityRole="alert" accessibilityLiveRegion="assertive">
           {loadErrorMessage}
         </Text>
-        <Pressable
-          style={styles.retryButton}
-          onPress={loadInitialData}
-          accessibilityRole="button"
-          accessibilityLabel="Reintentar"
-        >
-          <Text style={styles.retryButtonText}>Reintentar</Text>
-        </Pressable>
+        <Button label="Reintentar" onPress={loadInitialData} />
       </View>
     );
   }
@@ -135,14 +130,7 @@ export function EmergencyContactFormScreen() {
         <Text style={styles.helperText}>
           Creá una familia para empezar a cargar la ficha de la persona cuidada.
         </Text>
-        <Pressable
-          style={styles.retryButton}
-          onPress={() => router.push('/family/create')}
-          accessibilityRole="button"
-          accessibilityLabel="Crear familia"
-        >
-          <Text style={styles.retryButtonText}>Crear familia</Text>
-        </Pressable>
+        <Button label="Crear familia" onPress={() => router.push('/family/create')} />
       </View>
     );
   }
@@ -155,14 +143,10 @@ export function EmergencyContactFormScreen() {
           Un contacto de emergencia siempre pertenece a una persona cuidada. Cargá su perfil
           primero.
         </Text>
-        <Pressable
-          style={styles.retryButton}
+        <Button
+          label="Cargar persona cuidada"
           onPress={() => router.push('/cared-person/new')}
-          accessibilityRole="button"
-          accessibilityLabel="Cargar persona cuidada"
-        >
-          <Text style={styles.retryButtonText}>Cargar persona cuidada</Text>
-        </Pressable>
+        />
       </View>
     );
   }
@@ -172,47 +156,62 @@ export function EmergencyContactFormScreen() {
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <AppHeader title="Contacto de emergencia" onBack={() => router.back()} />
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>Nuevo contacto de emergencia</Text>
-        <Text style={styles.subtitle}>Nombre y teléfono son obligatorios.</Text>
+        <View style={styles.warningBanner}>
+          <IconAlert size="sm" color={colors.warn} />
+          <Text style={styles.warningText}>
+            Este contacto recibirá llamados en situaciones críticas. Asegurate de que el número
+            sea correcto.
+          </Text>
+        </View>
 
-        <FormField
-          label="Nombre completo"
-          value={fullName}
-          onChangeText={setFullName}
-          placeholder="Ej. María López"
-          editable={!isSubmitting}
-          accessibilityLabel="Nombre completo del contacto de emergencia"
-        />
+        <View style={styles.field}>
+          <TextField
+            label="Nombre completo"
+            value={fullName}
+            onChangeText={setFullName}
+            placeholder="Ej. María López"
+            editable={!isSubmitting}
+            accessibilityLabel="Nombre completo del contacto de emergencia"
+          />
+        </View>
 
-        <FormField
-          label="Relación (opcional)"
-          value={relationship}
-          onChangeText={setRelationship}
-          placeholder="Ej. Hija, vecino, cuidador"
-          editable={!isSubmitting}
-          accessibilityLabel="Relación con la persona cuidada"
-        />
+        <View style={styles.field}>
+          <TextField
+            label="Relación (opcional)"
+            value={relationship}
+            onChangeText={setRelationship}
+            placeholder="Ej. Hija, vecino, cuidador"
+            editable={!isSubmitting}
+            accessibilityLabel="Relación con la persona cuidada"
+          />
+        </View>
 
-        <FormField
-          label="Teléfono"
-          value={phone}
-          onChangeText={setPhone}
-          placeholder="Ej. 11 5555-5555"
-          editable={!isSubmitting}
-          accessibilityLabel="Teléfono del contacto de emergencia"
-          keyboardType="phone-pad"
-        />
+        <View style={styles.field}>
+          <TextField
+            label="Teléfono"
+            value={phone}
+            onChangeText={setPhone}
+            placeholder="Ej. 11 5555-5555"
+            editable={!isSubmitting}
+            accessibilityLabel="Teléfono del contacto de emergencia"
+            keyboardType="phone-pad"
+          />
+        </View>
 
-        <FormField
-          label="Notas (opcional)"
-          value={notes}
-          onChangeText={setNotes}
-          placeholder="Ej. solo llamar en horario de mañana"
-          editable={!isSubmitting}
-          accessibilityLabel="Notas sobre el contacto de emergencia"
-          multiline
-        />
+        <View style={styles.field}>
+          <TextField
+            label="Notas (opcional)"
+            value={notes}
+            onChangeText={setNotes}
+            placeholder="Ej. solo llamar en horario de mañana"
+            editable={!isSubmitting}
+            accessibilityLabel="Notas sobre el contacto de emergencia"
+            multiline
+            style={styles.inputMultiline}
+          />
+        </View>
 
         {submitError ? (
           <Text
@@ -224,75 +223,25 @@ export function EmergencyContactFormScreen() {
           </Text>
         ) : null}
 
-        <Pressable
-          style={({ pressed }) => [
-            styles.button,
-            !canSubmit && styles.buttonDisabled,
-            pressed && canSubmit && styles.buttonPressed,
-          ]}
+        <Button
+          label="Guardar contacto"
           onPress={handleSubmit}
           disabled={!canSubmit}
-          accessibilityRole="button"
+          loading={isSubmitting}
           accessibilityLabel="Guardar contacto de emergencia"
-          accessibilityState={{ disabled: !canSubmit, busy: isSubmitting }}
-        >
-          {isSubmitting ? (
-            <ActivityIndicator color={colors.white} />
-          ) : (
-            <Text style={styles.buttonText}>Guardar contacto</Text>
-          )}
-        </Pressable>
+          size="lg"
+          full
+        />
 
-        <Pressable
-          style={styles.secondaryButton}
+        <Button
+          label="Cancelar"
           onPress={() => router.back()}
           disabled={isSubmitting}
-          accessibilityRole="button"
-          accessibilityLabel="Cancelar"
-        >
-          <Text style={styles.secondaryButtonText}>Cancelar</Text>
-        </Pressable>
+          variant="ghost"
+          full
+        />
       </ScrollView>
     </KeyboardAvoidingView>
-  );
-}
-
-interface FormFieldProps {
-  label: string;
-  value: string;
-  onChangeText: (value: string) => void;
-  placeholder: string;
-  editable: boolean;
-  accessibilityLabel: string;
-  multiline?: boolean;
-  keyboardType?: 'default' | 'phone-pad';
-}
-
-function FormField({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  editable,
-  accessibilityLabel,
-  multiline,
-  keyboardType,
-}: FormFieldProps) {
-  return (
-    <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
-      <TextInput
-        style={[styles.input, multiline && styles.inputMultiline]}
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={colors.ink3}
-        editable={editable}
-        multiline={multiline}
-        keyboardType={keyboardType}
-        accessibilityLabel={accessibilityLabel}
-      />
-    </View>
   );
 }
 
@@ -303,7 +252,7 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     backgroundColor: colors.surface,
-    padding: 24,
+    padding: 20,
     gap: 4,
   },
   centerContainer: {
@@ -314,38 +263,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     backgroundColor: colors.surface,
   },
-  title: {
-    fontSize: 22,
-    fontFamily: fontFamily.bold,
-    fontWeight: '700',
-    marginBottom: 4,
-    color: colors.ink,
-  },
-  subtitle: {
-    fontSize: 14,
-    fontFamily: fontFamily.regular,
-    color: colors.ink2,
+  warningBanner: {
+    flexDirection: 'row',
+    gap: 12,
+    padding: 16,
+    borderRadius: radii.card,
+    backgroundColor: colors.warnBg,
     marginBottom: 16,
   },
-  field: {
-    gap: 6,
-    marginBottom: 14,
-  },
-  label: {
-    fontSize: 14,
+  warningText: {
+    flex: 1,
+    fontSize: 13,
     fontFamily: fontFamily.semiBold,
     fontWeight: '600',
-    color: colors.ink,
+    color: colors.warn,
+    lineHeight: 18,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.sm,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    fontFamily: fontFamily.regular,
-    color: colors.ink,
+  field: {
+    marginBottom: 14,
   },
   inputMultiline: {
     minHeight: 88,
@@ -370,49 +305,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.ink,
     textAlign: 'center',
-  },
-  retryButton: {
-    marginTop: 8,
-    backgroundColor: colors.brand,
-    borderRadius: radii.sm,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  retryButtonText: {
-    color: colors.white,
-    fontFamily: fontFamily.semiBold,
-    fontWeight: '600',
-  },
-  button: {
-    backgroundColor: colors.brand,
-    borderRadius: radii.sm,
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 8,
-  },
-  buttonDisabled: {
-    backgroundColor: colors.brandMid,
-  },
-  buttonPressed: {
-    opacity: 0.85,
-  },
-  buttonText: {
-    color: colors.white,
-    fontSize: 16,
-    fontFamily: fontFamily.semiBold,
-    fontWeight: '600',
-  },
-  secondaryButton: {
-    marginTop: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  secondaryButtonText: {
-    color: colors.brand,
-    fontSize: 15,
-    fontFamily: fontFamily.semiBold,
-    fontWeight: '600',
   },
 });

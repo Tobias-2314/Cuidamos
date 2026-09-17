@@ -12,7 +12,12 @@ import {
   type FamilyMember,
 } from './shiftsService';
 import { supabase } from '../../lib/supabase';
-import { colors, fontFamily, radii } from '../../theme/tokens';
+import { colors, fontFamily } from '../../theme/tokens';
+import { Button } from '../../components/Button';
+import { Card } from '../../components/Card';
+import { Avatar } from '../../components/Avatar';
+import { AppHeader } from '../../components/AppHeader';
+import { IconChevronLeft, IconChevronRight } from '../../components/icons';
 
 /**
  * PGM-28 -- Panel de reparto: es la diferenciación clave del producto (ver
@@ -117,40 +122,32 @@ export function CoverageScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <Pressable
-        onPress={() => router.back()}
-        accessibilityRole="button"
-        accessibilityLabel="Volver al calendario"
-        style={styles.backButton}
-      >
-        <Text style={styles.backButtonText}>{'‹ Calendario'}</Text>
-      </Pressable>
+    <View style={styles.screen}>
+      <AppHeader title="Cobertura de turnos" onBack={() => router.back()} />
+      <View style={styles.container}>
+        <Text style={styles.subtitle}>Cuánto cubrió cada cuidador este mes.</Text>
 
-      <Text style={styles.title}>Reparto de turnos</Text>
-      <Text style={styles.subtitle}>Cuánto cubrió cada cuidador este mes.</Text>
+        <View style={styles.navRow}>
+          <Pressable
+            onPress={() => handleStep(-1)}
+            accessibilityRole="button"
+            accessibilityLabel="Mes anterior"
+            style={styles.navButton}
+          >
+            <IconChevronLeft size="sm" color={colors.ink2} />
+          </Pressable>
+          <Text style={styles.navLabel}>{formatMonthLabel(referenceDate)}</Text>
+          <Pressable
+            onPress={() => handleStep(1)}
+            accessibilityRole="button"
+            accessibilityLabel="Mes siguiente"
+            style={styles.navButton}
+          >
+            <IconChevronRight size="sm" color={colors.ink2} />
+          </Pressable>
+        </View>
 
-      <View style={styles.navRow}>
-        <Pressable
-          onPress={() => handleStep(-1)}
-          accessibilityRole="button"
-          accessibilityLabel="Mes anterior"
-          style={styles.navButton}
-        >
-          <Text style={styles.navButtonText}>{'‹'}</Text>
-        </Pressable>
-        <Text style={styles.navLabel}>{formatMonthLabel(referenceDate)}</Text>
-        <Pressable
-          onPress={() => handleStep(1)}
-          accessibilityRole="button"
-          accessibilityLabel="Mes siguiente"
-          style={styles.navButton}
-        >
-          <Text style={styles.navButtonText}>{'›'}</Text>
-        </Pressable>
-      </View>
-
-      {phase === 'loading' ? (
+        {phase === 'loading' ? (
         <View style={styles.centerContent}>
           <ActivityIndicator />
           <Text style={styles.helperText}>Cargando reparto…</Text>
@@ -162,28 +159,14 @@ export function CoverageScreen() {
           <Text style={styles.errorText} accessibilityRole="alert" accessibilityLiveRegion="assertive">
             {errorMessage}
           </Text>
-          <Pressable
-            style={styles.retryButton}
-            onPress={handleRetry}
-            accessibilityRole="button"
-            accessibilityLabel="Reintentar"
-          >
-            <Text style={styles.retryButtonText}>Reintentar</Text>
-          </Pressable>
+          <Button label="Reintentar" onPress={handleRetry} />
         </View>
       ) : null}
 
       {phase === 'no-family' ? (
         <View style={styles.centerContent}>
           <Text style={styles.emptyTitle}>Todavía no formás parte de ninguna familia.</Text>
-          <Pressable
-            style={styles.retryButton}
-            onPress={() => router.push('/family/create')}
-            accessibilityRole="button"
-            accessibilityLabel="Crear familia"
-          >
-            <Text style={styles.retryButtonText}>Crear familia</Text>
-          </Pressable>
+          <Button label="Crear familia" onPress={() => router.push('/family/create')} />
         </View>
       ) : null}
 
@@ -193,13 +176,14 @@ export function CoverageScreen() {
         </View>
       ) : null}
 
-      {phase === 'ready' && stats.length > 0 ? (
-        <ScrollView contentContainerStyle={styles.listContent}>
-          {stats.map((stat) => (
-            <CoverageRow key={stat.userId} stat={stat} allStats={stats} currentUserId={currentUserId} />
-          ))}
-        </ScrollView>
-      ) : null}
+        {phase === 'ready' && stats.length > 0 ? (
+          <ScrollView contentContainerStyle={styles.listContent}>
+            {stats.map((stat) => (
+              <CoverageRow key={stat.userId} stat={stat} allStats={stats} currentUserId={currentUserId} />
+            ))}
+          </ScrollView>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -225,48 +209,38 @@ function CoverageRow({ stat, allStats, currentUserId }: CoverageRowProps) {
   const summary = `${label}: ${formatHours(stat.totalHours)} cubiertas en ${shiftsLabel}`;
 
   return (
-    <View style={styles.row} accessible accessibilityLabel={summary}>
+    <Card style={styles.row}>
       <View style={styles.rowHeader}>
-        <Text style={styles.rowLabel}>{label}</Text>
-        <Text style={styles.rowStats}>
-          {formatHours(stat.totalHours)} · {shiftsLabel}
-        </Text>
+        <Avatar name={label} size="sm" />
+        <View style={styles.rowHeaderText} accessible accessibilityLabel={summary}>
+          <Text style={styles.rowLabel}>{label}</Text>
+          <Text style={styles.rowStats}>
+            {formatHours(stat.totalHours)} · {shiftsLabel}
+          </Text>
+        </View>
       </View>
       <View style={styles.barTrack}>
         <View style={[styles.barFill, { width: `${barWidthPercent}%` }]} />
       </View>
-    </View>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: colors.surface,
+  },
   container: {
     flex: 1,
     backgroundColor: colors.surface,
-    paddingTop: 24,
-    paddingHorizontal: 16,
-  },
-  backButton: {
-    alignSelf: 'flex-start',
-    marginBottom: 12,
-  },
-  backButtonText: {
-    color: colors.brand,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
-    fontSize: 14,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    fontFamily: fontFamily.bold,
-    color: colors.ink,
+    paddingTop: 16,
+    paddingHorizontal: 20,
   },
   subtitle: {
     fontSize: 14,
     color: colors.ink2,
     fontFamily: fontFamily.regular,
-    marginTop: 4,
     marginBottom: 16,
   },
   navRow: {
@@ -279,12 +253,6 @@ const styles = StyleSheet.create({
   navButton: {
     paddingHorizontal: 16,
     paddingVertical: 6,
-  },
-  navButtonText: {
-    fontSize: 20,
-    color: colors.brand,
-    fontWeight: '700',
-    fontFamily: fontFamily.bold,
   },
   navLabel: {
     fontSize: 16,
@@ -314,18 +282,6 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.medium,
     textAlign: 'center',
   },
-  retryButton: {
-    marginTop: 8,
-    backgroundColor: colors.brand,
-    borderRadius: radii.sm,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  retryButtonText: {
-    color: colors.white,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
-  },
   emptyTitle: {
     fontSize: 16,
     fontWeight: '600',
@@ -338,9 +294,16 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   row: {
-    gap: 6,
+    padding: 14,
+    gap: 10,
   },
   rowHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  rowHeaderText: {
+    flex: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'baseline',

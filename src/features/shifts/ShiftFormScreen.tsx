@@ -3,11 +3,9 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -21,7 +19,10 @@ import {
   type FamilyMember,
 } from './shiftsService';
 import { supabase } from '../../lib/supabase';
-import { colors, fontFamily, radii } from '../../theme/tokens';
+import { colors, fontFamily } from '../../theme/tokens';
+import { Button } from '../../components/Button';
+import { TextField } from '../../components/TextField';
+import { AppHeader } from '../../components/AppHeader';
 
 /**
  * `phase` sigue el mismo criterio explícito que `CalendarScreen`/
@@ -155,14 +156,7 @@ export function ShiftFormScreen() {
         <Text style={styles.errorText} accessibilityRole="alert" accessibilityLiveRegion="assertive">
           {loadErrorMessage}
         </Text>
-        <Pressable
-          style={styles.retryButton}
-          onPress={loadInitialData}
-          accessibilityRole="button"
-          accessibilityLabel="Reintentar"
-        >
-          <Text style={styles.retryButtonText}>Reintentar</Text>
-        </Pressable>
+        <Button label="Reintentar" onPress={loadInitialData} />
       </View>
     );
   }
@@ -174,14 +168,7 @@ export function ShiftFormScreen() {
         <Text style={styles.helperText}>
           Creá una familia para empezar a coordinar turnos entre cuidadores.
         </Text>
-        <Pressable
-          style={styles.retryButton}
-          onPress={() => router.push('/family/create')}
-          accessibilityRole="button"
-          accessibilityLabel="Crear familia"
-        >
-          <Text style={styles.retryButtonText}>Crear familia</Text>
-        </Pressable>
+        <Button label="Crear familia" onPress={() => router.push('/family/create')} />
       </View>
     );
   }
@@ -193,8 +180,8 @@ export function ShiftFormScreen() {
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <AppHeader title="Nuevo turno" onBack={() => router.back()} />
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>Nuevo turno</Text>
         <Text style={styles.subtitle}>Elegí quién cuida y el rango horario del turno.</Text>
 
         <View style={styles.field}>
@@ -208,23 +195,27 @@ export function ShiftFormScreen() {
           />
         </View>
 
-        <FormField
-          label="Inicio"
-          value={startsAtInput}
-          onChangeText={setStartsAtInput}
-          placeholder={SHIFT_DATE_TIME_FORMAT_HINT}
-          editable={!isSubmitting}
-          accessibilityLabel="Fecha y hora de inicio del turno"
-        />
+        <View style={styles.field}>
+          <TextField
+            label="Inicio"
+            value={startsAtInput}
+            onChangeText={setStartsAtInput}
+            placeholder={SHIFT_DATE_TIME_FORMAT_HINT}
+            editable={!isSubmitting}
+            accessibilityLabel="Fecha y hora de inicio del turno"
+          />
+        </View>
 
-        <FormField
-          label="Fin"
-          value={endsAtInput}
-          onChangeText={setEndsAtInput}
-          placeholder={SHIFT_DATE_TIME_FORMAT_HINT}
-          editable={!isSubmitting}
-          accessibilityLabel="Fecha y hora de fin del turno"
-        />
+        <View style={styles.field}>
+          <TextField
+            label="Fin"
+            value={endsAtInput}
+            onChangeText={setEndsAtInput}
+            placeholder={SHIFT_DATE_TIME_FORMAT_HINT}
+            editable={!isSubmitting}
+            accessibilityLabel="Fecha y hora de fin del turno"
+          />
+        </View>
 
         {message ? (
           <Text style={styles.errorText} accessibilityRole="alert" accessibilityLiveRegion="polite">
@@ -242,69 +233,24 @@ export function ShiftFormScreen() {
           </Text>
         ) : null}
 
-        <Pressable
-          style={({ pressed }) => [
-            styles.button,
-            !canSubmit && styles.buttonDisabled,
-            pressed && canSubmit && styles.buttonPressed,
-          ]}
+        <Button
+          label="Guardar turno"
           onPress={handleSubmit}
           disabled={!canSubmit}
-          accessibilityRole="button"
-          accessibilityLabel="Guardar turno"
-          accessibilityState={{ disabled: !canSubmit, busy: isSubmitting }}
-        >
-          {isSubmitting ? (
-            <ActivityIndicator color={colors.white} />
-          ) : (
-            <Text style={styles.buttonText}>Guardar turno</Text>
-          )}
-        </Pressable>
+          loading={isSubmitting}
+          size="lg"
+          full
+        />
 
-        <Pressable
-          style={styles.secondaryButton}
+        <Button
+          label="Cancelar"
           onPress={() => router.back()}
           disabled={isSubmitting}
-          accessibilityRole="button"
-          accessibilityLabel="Cancelar"
-        >
-          <Text style={styles.secondaryButtonText}>Cancelar</Text>
-        </Pressable>
+          variant="ghost"
+          full
+        />
       </ScrollView>
     </KeyboardAvoidingView>
-  );
-}
-
-interface FormFieldProps {
-  label: string;
-  value: string;
-  onChangeText: (value: string) => void;
-  placeholder: string;
-  editable: boolean;
-  accessibilityLabel: string;
-}
-
-function FormField({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  editable,
-  accessibilityLabel,
-}: FormFieldProps) {
-  return (
-    <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
-      <TextInput
-        style={styles.input}
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={colors.ink3}
-        editable={editable}
-        accessibilityLabel={accessibilityLabel}
-      />
-    </View>
   );
 }
 
@@ -315,7 +261,7 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     backgroundColor: colors.surface,
-    padding: 24,
+    padding: 20,
     gap: 4,
   },
   centerContainer: {
@@ -326,17 +272,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     backgroundColor: colors.surface,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    fontFamily: fontFamily.bold,
-    marginBottom: 4,
-    color: colors.ink,
-  },
   subtitle: {
     fontSize: 14,
     color: colors.ink2,
     fontFamily: fontFamily.regular,
+    marginTop: 12,
     marginBottom: 16,
   },
   field: {
@@ -348,16 +288,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontFamily: fontFamily.semiBold,
     color: colors.ink,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.sm,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: colors.ink,
-    fontFamily: fontFamily.regular,
   },
   helperText: {
     fontSize: 14,
@@ -378,49 +308,5 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.semiBold,
     color: colors.ink,
     textAlign: 'center',
-  },
-  retryButton: {
-    marginTop: 8,
-    backgroundColor: colors.brand,
-    borderRadius: radii.sm,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  retryButtonText: {
-    color: colors.white,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
-  },
-  button: {
-    backgroundColor: colors.brand,
-    borderRadius: radii.sm,
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 8,
-  },
-  buttonDisabled: {
-    backgroundColor: colors.brandMid,
-  },
-  buttonPressed: {
-    opacity: 0.85,
-  },
-  buttonText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
-  },
-  secondaryButton: {
-    marginTop: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  secondaryButtonText: {
-    color: colors.brand,
-    fontSize: 15,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
   },
 });

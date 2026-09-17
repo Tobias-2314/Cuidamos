@@ -3,11 +3,9 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 
@@ -17,7 +15,13 @@ import {
   type CareProfile,
 } from './careProfileService';
 import { isValidCareProfileField, MAX_CARE_PROFILE_FIELD_LENGTH } from './careProfileValidation';
-import { colors, fontFamily, radii } from '../../theme/tokens';
+import { colors, fontFamily } from '../../theme/tokens';
+import { Button } from '../../components/Button';
+import { TextField } from '../../components/TextField';
+import { AppHeader } from '../../components/AppHeader';
+import { Avatar } from '../../components/Avatar';
+import { Badge } from '../../components/Badge';
+import { Divider } from '../../components/Divider';
 
 /**
  * `phase` -- mismo criterio explícito que el resto del repo (ver
@@ -126,42 +130,32 @@ export function CareProfileScreen() {
         <Text style={styles.errorText} accessibilityRole="alert" accessibilityLiveRegion="assertive">
           {loadErrorMessage}
         </Text>
-        <Pressable
-          style={styles.retryButton}
-          onPress={loadProfile}
-          accessibilityRole="button"
-          accessibilityLabel="Reintentar"
-        >
-          <Text style={styles.retryButtonText}>Reintentar</Text>
-        </Pressable>
+        <Button label="Reintentar" onPress={loadProfile} />
       </View>
     );
   }
 
   const message = validationMessage();
+  const displayName = profile?.name ?? profile?.email ?? '';
 
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <AppHeader title="Mi perfil" />
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>Mi perfil de cuidador</Text>
-
-        <View style={styles.accountBox}>
-          <Text style={styles.accountLabel}>Email</Text>
-          <Text style={styles.accountValue}>{profile?.email}</Text>
-          <Text style={styles.accountLabel}>Rol en la familia</Text>
-          <Text style={styles.accountValue}>{roleLabel(profile?.role ?? null)}</Text>
+        <View style={styles.profileHeader}>
+          <Avatar name={displayName} size="xl" />
+          <Text style={styles.profileName}>{displayName}</Text>
+          <Badge label={roleLabel(profile?.role ?? null)} variant="brand" />
         </View>
 
-        <Text style={styles.subtitle}>Nombre y relación con la persona cuidada.</Text>
+        <Divider />
 
         <View style={styles.field}>
-          <Text style={styles.label}>Nombre</Text>
-          <TextInput
-            style={styles.input}
+          <TextField
+            label="Nombre"
             value={name}
             onChangeText={setName}
             placeholder="Ej. María López"
-            placeholderTextColor={colors.ink3}
             editable={!isSubmitting}
             maxLength={MAX_CARE_PROFILE_FIELD_LENGTH}
             accessibilityLabel="Nombre"
@@ -169,13 +163,20 @@ export function CareProfileScreen() {
         </View>
 
         <View style={styles.field}>
-          <Text style={styles.label}>Relación con la persona cuidada</Text>
-          <TextInput
-            style={styles.input}
+          <TextField
+            label="Correo electrónico"
+            value={profile?.email ?? ''}
+            editable={false}
+            hint="El correo no puede modificarse"
+          />
+        </View>
+
+        <View style={styles.field}>
+          <TextField
+            label="Relación con la persona cuidada"
             value={relation}
             onChangeText={setRelation}
             placeholder="Ej. Hija, hijo, cónyuge, cuidador contratado"
-            placeholderTextColor={colors.ink3}
             editable={!isSubmitting}
             maxLength={MAX_CARE_PROFILE_FIELD_LENGTH}
             accessibilityLabel="Relación con la persona cuidada"
@@ -194,24 +195,15 @@ export function CareProfileScreen() {
           </Text>
         ) : null}
 
-        <Pressable
-          style={({ pressed }) => [
-            styles.button,
-            !canSubmit && styles.buttonDisabled,
-            pressed && canSubmit && styles.buttonPressed,
-          ]}
+        <Button
+          label="Guardar"
           onPress={handleSubmit}
           disabled={!canSubmit}
-          accessibilityRole="button"
+          loading={isSubmitting}
           accessibilityLabel="Guardar perfil"
-          accessibilityState={{ disabled: !canSubmit, busy: isSubmitting }}
-        >
-          {isSubmitting ? (
-            <ActivityIndicator color={colors.white} />
-          ) : (
-            <Text style={styles.buttonText}>Guardar</Text>
-          )}
-        </Pressable>
+          size="lg"
+          full
+        />
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -224,7 +216,7 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     backgroundColor: colors.surface,
-    padding: 24,
+    padding: 20,
     gap: 4,
   },
   centerContainer: {
@@ -235,60 +227,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     backgroundColor: colors.surface,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
+  profileHeader: {
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    marginBottom: 8,
+  },
+  profileName: {
+    fontSize: 20,
     fontFamily: fontFamily.bold,
+    fontWeight: '700',
     color: colors.ink,
-    marginBottom: 12,
-  },
-  subtitle: {
-    fontSize: 13,
-    fontFamily: fontFamily.regular,
-    color: colors.ink3,
-    marginBottom: 16,
-  },
-  accountBox: {
-    padding: 16,
-    borderRadius: radii.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface2,
-    gap: 2,
-    marginBottom: 20,
-  },
-  accountLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
-    color: colors.ink3,
-    marginTop: 8,
-  },
-  accountValue: {
-    fontSize: 15,
-    color: colors.ink,
-    fontWeight: '500',
-    fontFamily: fontFamily.medium,
   },
   field: {
-    gap: 6,
     marginBottom: 14,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
-    color: colors.ink2,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.sm,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    fontFamily: fontFamily.regular,
-    color: colors.ink,
+    marginTop: 20,
   },
   helperText: {
     fontSize: 14,
@@ -302,37 +255,5 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     fontFamily: fontFamily.medium,
     marginBottom: 8,
-  },
-  retryButton: {
-    marginTop: 8,
-    backgroundColor: colors.brand,
-    borderRadius: radii.sm,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  retryButtonText: {
-    color: colors.white,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
-  },
-  button: {
-    backgroundColor: colors.brand,
-    borderRadius: radii.sm,
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 8,
-  },
-  buttonDisabled: {
-    backgroundColor: colors.brandMid,
-  },
-  buttonPressed: {
-    opacity: 0.85,
-  },
-  buttonText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
   },
 });

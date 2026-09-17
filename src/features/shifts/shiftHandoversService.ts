@@ -7,21 +7,21 @@ import {
   MAX_SHIFT_HANDOVER_FIELD_LENGTH,
   shiftHandoverFieldsSchema,
 } from './shiftHandoverValidation';
+import {
+  normalizeUnexpectedError as normalizeUnexpectedServiceError,
+  type ServiceError,
+  type ServiceResult,
+} from '../../lib/serviceResult';
 
 /**
  * Normalized error shape returned by every function in this module -- mismo
- * patrón que `shiftsService.ts` (PGM-26) / `medicationsService.ts` (PGM-30).
- * Nunca lleva el error crudo de Supabase, solo un `code` estable y un
- * `message` para mostrar al usuario.
+ * shape compartido que el resto de los `*Service.ts` (ver
+ * `lib/serviceResult.ts`). Nunca lleva el error crudo de Supabase, solo un
+ * `code` estable y un `message` para mostrar al usuario.
  */
-export interface ShiftHandoversServiceError {
-  code: string;
-  message: string;
-}
+export type ShiftHandoversServiceError = ServiceError;
 
-export type ShiftHandoversResult<T> =
-  | { data: T; error: null }
-  | { data: null; error: ShiftHandoversServiceError };
+export type ShiftHandoversResult<T> = ServiceResult<T>;
 
 /**
  * Traspaso de turno (F5, PGM-35/36) ya descifrado. `resumen`/`comida`/
@@ -58,17 +58,13 @@ const shiftHandoverRowSchema = z.object({
   created_at: z.string(),
 });
 
-function normalizeUnexpectedError(context: string, _err: unknown): ShiftHandoversServiceError {
-  // Never surface the raw error -- it may wrap a network response or other
-  // sensitive request/response data. Log only a non-sensitive marker.
-  if (process.env.NODE_ENV !== 'production') {
-    console.warn(`[shiftHandoversService] unexpected error in ${context}`);
-  }
-
-  return {
-    code: 'unexpected_error',
-    message: GENERIC_ERROR_MESSAGE,
-  };
+function normalizeUnexpectedError(context: string, err: unknown): ShiftHandoversServiceError {
+  return normalizeUnexpectedServiceError(
+    'shiftHandoversService',
+    context,
+    err,
+    GENERIC_ERROR_MESSAGE
+  );
 }
 
 function mapShiftHandoverRow(row: z.infer<typeof shiftHandoverRowSchema>): ShiftHandover {

@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -9,6 +9,13 @@ import { getMedicationTakenByLabel } from './medicationTakenByLabel';
 import { getCurrentUserFamilyId } from '../shifts/shiftsService';
 import { supabase } from '../../lib/supabase';
 import { colors, fontFamily, radii } from '../../theme/tokens';
+import { Button } from '../../components/Button';
+import { Card } from '../../components/Card';
+import { Avatar } from '../../components/Avatar';
+import { Badge } from '../../components/Badge';
+import { AppHeader } from '../../components/AppHeader';
+import { EmptyState } from '../../components/EmptyState';
+import { IconCheck, IconClip } from '../../components/icons';
 
 /**
  * PGM-33 -- Historial de tomas visible por TODOS los cuidadores de la familia (no solo
@@ -91,65 +98,53 @@ export function MedicationHistoryScreen() {
   }, [familyId, loadHistoryForFamily, resolveUserAndFamily]);
 
   return (
-    <View style={styles.container}>
-      <Pressable
-        onPress={() => router.back()}
-        accessibilityRole="button"
-        accessibilityLabel="Volver a medicación"
-        style={styles.backButton}
-      >
-        <Text style={styles.backButtonText}>{'‹ Medicación'}</Text>
-      </Pressable>
+    <View style={styles.screen}>
+      <AppHeader title="Historial de tomas" onBack={() => router.back()} />
+      <View style={styles.container}>
+        <Text style={styles.disclaimer}>
+          Esto no reemplaza el criterio médico. Ante dudas, consultá con el profesional de
+          salud a cargo.
+        </Text>
 
-      <Text style={styles.title}>Historial de tomas</Text>
-      <Text style={styles.disclaimer}>
-        Esto no reemplaza el criterio médico. Ante dudas, consultá con el profesional de
-        salud a cargo.
-      </Text>
+        {phase === 'loading' ? (
+          <View style={styles.centerContent}>
+            <ActivityIndicator />
+            <Text style={styles.helperText}>Cargando historial…</Text>
+          </View>
+        ) : null}
 
-      {phase === 'loading' ? (
-        <View style={styles.centerContent}>
-          <ActivityIndicator />
-          <Text style={styles.helperText}>Cargando historial…</Text>
-        </View>
-      ) : null}
+        {phase === 'error' ? (
+          <View style={styles.centerContent}>
+            <Text style={styles.errorText} accessibilityRole="alert" accessibilityLiveRegion="assertive">
+              {errorMessage}
+            </Text>
+            <Button label="Reintentar" onPress={handleRetry} />
+          </View>
+        ) : null}
 
-      {phase === 'error' ? (
-        <View style={styles.centerContent}>
-          <Text style={styles.errorText} accessibilityRole="alert" accessibilityLiveRegion="assertive">
-            {errorMessage}
-          </Text>
-          <Pressable
-            style={styles.retryButton}
-            onPress={handleRetry}
-            accessibilityRole="button"
-            accessibilityLabel="Reintentar"
-          >
-            <Text style={styles.retryButtonText}>Reintentar</Text>
-          </Pressable>
-        </View>
-      ) : null}
+        {phase === 'no-family' ? (
+          <View style={styles.centerContent}>
+            <Text style={styles.emptyTitle}>Todavía no formás parte de ninguna familia.</Text>
+          </View>
+        ) : null}
 
-      {phase === 'no-family' ? (
-        <View style={styles.centerContent}>
-          <Text style={styles.emptyTitle}>Todavía no formás parte de ninguna familia.</Text>
-        </View>
-      ) : null}
+        {phase === 'ready' && logs.length === 0 ? (
+          <EmptyState
+            icon={<IconClip size="lg" color={colors.brand} />}
+            title="Sin historial todavía"
+            desc="Las tomas de medicamentos registradas van a aparecer acá para que toda la familia pueda seguirlas."
+          />
+        ) : null}
 
-      {phase === 'ready' && logs.length === 0 ? (
-        <View style={styles.centerContent}>
-          <Text style={styles.emptyTitle}>Todavía no se registró ninguna toma.</Text>
-        </View>
-      ) : null}
-
-      {phase === 'ready' && logs.length > 0 ? (
-        <FlatList
-          data={logs}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <HistoryRow entry={item} currentUserId={currentUserId} />}
-          contentContainerStyle={styles.listContent}
-        />
-      ) : null}
+        {phase === 'ready' && logs.length > 0 ? (
+          <FlatList
+            data={logs}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => <HistoryRow entry={item} currentUserId={currentUserId} />}
+            contentContainerStyle={styles.listContent}
+          />
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -167,46 +162,44 @@ function HistoryRow({ entry, currentUserId }: HistoryRowProps) {
     : `${entry.medicationName}, dado por ${takenByLabel} el ${takenAtLabel}`;
 
   return (
-    <View style={styles.row} accessible accessibilityLabel={summary}>
-      <View style={styles.rowHeader}>
-        <Text style={styles.medicationName}>{entry.medicationName}</Text>
-        <Text style={styles.takenAt}>{takenAtLabel}</Text>
+    <Card style={styles.row}>
+      <View style={styles.rowMain} accessible accessibilityLabel={summary}>
+        <View style={styles.rowIconBadge}>
+          <IconCheck size="sm" color={colors.ok} />
+        </View>
+        <View style={styles.rowInfo}>
+          <View style={styles.rowHeader}>
+            <Text style={styles.medicationName}>{entry.medicationName}</Text>
+          </View>
+          <View style={styles.rowByRow}>
+            <Avatar name={takenByLabel} size="sm" />
+            <Text style={styles.takenBy}>{takenByLabel}</Text>
+            <Text style={styles.takenAt}>· {takenAtLabel}</Text>
+          </View>
+          {entry.note ? <Text style={styles.note}>{entry.note}</Text> : null}
+        </View>
+        <Badge label="Tomada" variant="ok" />
       </View>
-      <Text style={styles.takenBy}>{takenByLabel}</Text>
-      {entry.note ? <Text style={styles.note}>{entry.note}</Text> : null}
-    </View>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: colors.surface,
+  },
   container: {
     flex: 1,
     backgroundColor: colors.surface,
-    paddingTop: 24,
-    paddingHorizontal: 16,
-  },
-  backButton: {
-    alignSelf: 'flex-start',
-    marginBottom: 12,
-  },
-  backButtonText: {
-    color: colors.brand,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
-    fontSize: 14,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    fontFamily: fontFamily.bold,
-    color: colors.ink,
+    paddingTop: 16,
+    paddingHorizontal: 20,
   },
   disclaimer: {
     fontSize: 12,
     color: colors.ink3,
     fontFamily: fontFamily.regular,
     fontStyle: 'italic',
-    marginTop: 4,
     marginBottom: 16,
   },
   centerContent: {
@@ -229,18 +222,6 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.medium,
     textAlign: 'center',
   },
-  retryButton: {
-    marginTop: 8,
-    backgroundColor: colors.brand,
-    borderRadius: radii.sm,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  retryButtonText: {
-    color: colors.white,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
-  },
   emptyTitle: {
     fontSize: 16,
     fontWeight: '600',
@@ -250,40 +231,59 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: 24,
+    gap: 10,
   },
   row: {
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-    gap: 4,
+    padding: 14,
+  },
+  rowMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  rowIconBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: radii.card,
+    backgroundColor: colors.okBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rowInfo: {
+    flex: 1,
+    gap: 2,
   },
   rowHeader: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    justifyContent: 'space-between',
     gap: 8,
   },
+  rowByRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   medicationName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     fontFamily: fontFamily.bold,
     color: colors.ink,
   },
   takenAt: {
-    fontSize: 13,
+    fontSize: 12,
     fontFamily: fontFamily.regular,
-    color: colors.ink2,
+    color: colors.ink3,
   },
   takenBy: {
-    fontSize: 14,
-    color: colors.brand,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
+    fontSize: 12,
+    color: colors.ink3,
+    fontFamily: fontFamily.regular,
   },
   note: {
     fontSize: 13,
     fontFamily: fontFamily.regular,
     color: colors.ink2,
     fontStyle: 'italic',
+    marginTop: 2,
   },
 });

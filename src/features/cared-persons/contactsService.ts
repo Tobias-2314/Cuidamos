@@ -1,21 +1,21 @@
 import { z } from 'zod';
 
 import { supabase } from '../../lib/supabase';
+import {
+  normalizeUnexpectedError as normalizeUnexpectedServiceError,
+  type ServiceError,
+  type ServiceResult,
+} from '../../lib/serviceResult';
 
 /**
  * Normalized error shape returned by every function in this module — mismo
- * patrón que `caredPersonsService.ts`/`medicationsService.ts`/`familyService.ts`.
- * Nunca carga el payload crudo de Supabase, solo un `code` estable y un
- * `message` user-facing.
+ * shape compartido que el resto de los `*Service.ts` (ver
+ * `lib/serviceResult.ts`). Nunca carga el payload crudo de Supabase, solo un
+ * `code` estable y un `message` user-facing.
  */
-export interface ContactsServiceError {
-  code: string;
-  message: string;
-}
+export type ContactsServiceError = ServiceError;
 
-export type ContactsResult<T> =
-  | { data: T; error: null }
-  | { data: null; error: ContactsServiceError };
+export type ContactsResult<T> = ServiceResult<T>;
 
 export interface MedicalContact {
   id: string;
@@ -78,17 +78,8 @@ const CONTACT_SELECT_COLUMNS =
 const EMERGENCY_CONTACT_SELECT_COLUMNS =
   'id, cared_person_id, full_name, relationship, phone, notes, created_by, created_at';
 
-function normalizeUnexpectedError(context: string, _err: unknown): ContactsServiceError {
-  // Never surface the raw error — it may wrap a network response or other
-  // sensitive request/response data. Log only a non-sensitive marker.
-  if (process.env.NODE_ENV !== 'production') {
-    console.warn(`[contactsService] unexpected error in ${context}`);
-  }
-
-  return {
-    code: 'unexpected_error',
-    message: GENERIC_ERROR_MESSAGE,
-  };
+function normalizeUnexpectedError(context: string, err: unknown): ContactsServiceError {
+  return normalizeUnexpectedServiceError('contactsService', context, err, GENERIC_ERROR_MESSAGE);
 }
 
 function mapMedicalContactRow(row: z.infer<typeof medicalContactRowSchema>): MedicalContact {

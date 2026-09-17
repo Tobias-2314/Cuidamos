@@ -2,21 +2,21 @@ import { z } from 'zod';
 
 import { supabase } from '../../lib/supabase';
 import { isValidMedicationNote } from './medicationFormatting';
+import {
+  normalizeUnexpectedError as normalizeUnexpectedServiceError,
+  type ServiceError,
+  type ServiceResult,
+} from '../../lib/serviceResult';
 
 /**
  * Normalized error shape returned by every function in this module — same
- * pattern as `authService.ts` (PGM-16/17) / `shiftsService.ts` (PGM-26).
+ * shared shape as every other `*Service.ts` (see `lib/serviceResult.ts`).
  * Never carries raw Supabase error payloads, only a stable `code` and a
  * user-facing `message`.
  */
-export interface MedicationsServiceError {
-  code: string;
-  message: string;
-}
+export type MedicationsServiceError = ServiceError;
 
-export type MedicationsResult<T> =
-  | { data: T; error: null }
-  | { data: null; error: MedicationsServiceError };
+export type MedicationsResult<T> = ServiceResult<T>;
 
 export interface Medication {
   id: string;
@@ -93,17 +93,8 @@ const caredPersonRowSchema = z.object({
   full_name: z.string(),
 });
 
-function normalizeUnexpectedError(context: string, _err: unknown): MedicationsServiceError {
-  // Never surface the raw error — it may wrap a network response or other
-  // sensitive request/response data. Log only a non-sensitive marker.
-  if (process.env.NODE_ENV !== 'production') {
-    console.warn(`[medicationsService] unexpected error in ${context}`);
-  }
-
-  return {
-    code: 'unexpected_error',
-    message: GENERIC_ERROR_MESSAGE,
-  };
+function normalizeUnexpectedError(context: string, err: unknown): MedicationsServiceError {
+  return normalizeUnexpectedServiceError('medicationsService', context, err, GENERIC_ERROR_MESSAGE);
 }
 
 function mapMedicationRow(row: z.infer<typeof medicationRowSchema>): Medication {

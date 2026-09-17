@@ -4,21 +4,21 @@ import { supabase } from '../../lib/supabase';
 import { getCurrentUserFamilyId } from '../shifts/shiftsService';
 import { getCurrentUserRoleInFamily, type FamilyMemberRole } from './familyService';
 import { careProfileFieldsSchema } from './careProfileValidation';
+import {
+  normalizeUnexpectedError as normalizeUnexpectedServiceError,
+  type ServiceError,
+  type ServiceResult,
+} from '../../lib/serviceResult';
 
 /**
  * Normalized error shape returned by every function in this module -- mismo
- * patrón que `familyService.ts`/`shiftHandoversService.ts`. Nunca lleva el
- * error crudo de Supabase, solo un `code` estable y un `message` pensado
- * para mostrarse al usuario.
+ * shape compartido que el resto de los `*Service.ts` (ver
+ * `lib/serviceResult.ts`). Nunca lleva el error crudo de Supabase, solo un
+ * `code` estable y un `message` pensado para mostrarse al usuario.
  */
-export interface CareProfileServiceError {
-  code: string;
-  message: string;
-}
+export type CareProfileServiceError = ServiceError;
 
-export type CareProfileResult<T> =
-  | { data: T; error: null }
-  | { data: null; error: CareProfileServiceError };
+export type CareProfileResult<T> = ServiceResult<T>;
 
 /**
  * Perfil de cuidador (PGM-20 + migración de Backend
@@ -45,17 +45,8 @@ const profileRowSchema = z.object({
 
 const GENERIC_ERROR_MESSAGE = 'No pudimos completar la operación. Intentá de nuevo.';
 
-function normalizeUnexpectedError(context: string, _err: unknown): CareProfileServiceError {
-  // Nunca exponemos el error crudo -- puede envolver una respuesta de red u
-  // otro dato sensible. Solo logueamos un marcador no sensible.
-  if (process.env.NODE_ENV !== 'production') {
-    console.warn(`[careProfileService] unexpected error in ${context}`);
-  }
-
-  return {
-    code: 'unexpected_error',
-    message: GENERIC_ERROR_MESSAGE,
-  };
+function normalizeUnexpectedError(context: string, err: unknown): CareProfileServiceError {
+  return normalizeUnexpectedServiceError('careProfileService', context, err, GENERIC_ERROR_MESSAGE);
 }
 
 /**

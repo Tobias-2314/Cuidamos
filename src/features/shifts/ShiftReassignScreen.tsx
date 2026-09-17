@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { AssigneePicker } from './AssigneePicker';
+import { getAssignedToLabel } from './assignedToLabel';
 import { formatShiftTimeRange } from './calendarSections';
 import {
   getShiftById,
@@ -12,7 +13,11 @@ import {
   type Shift,
 } from './shiftsService';
 import { supabase } from '../../lib/supabase';
-import { colors, fontFamily, radii } from '../../theme/tokens';
+import { colors, fontFamily } from '../../theme/tokens';
+import { Button } from '../../components/Button';
+import { Card } from '../../components/Card';
+import { Avatar } from '../../components/Avatar';
+import { AppHeader } from '../../components/AppHeader';
 
 interface ShiftReassignScreenProps {
   shiftId: string;
@@ -111,77 +116,106 @@ export function ShiftReassignScreen({ shiftId }: ShiftReassignScreenProps) {
         <Text style={styles.errorText} accessibilityRole="alert" accessibilityLiveRegion="assertive">
           {loadErrorMessage}
         </Text>
-        <Pressable
-          style={styles.retryButton}
-          onPress={loadInitialData}
-          accessibilityRole="button"
-          accessibilityLabel="Reintentar"
-        >
-          <Text style={styles.retryButtonText}>Reintentar</Text>
-        </Pressable>
+        <Button label="Reintentar" onPress={loadInitialData} />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Reasignar turno</Text>
-      {shift ? <Text style={styles.subtitle}>{formatShiftTimeRange(shift)}</Text> : null}
+    <View style={styles.screen}>
+      <AppHeader title="Reasignar turno" onBack={() => router.back()} />
+      <ScrollView contentContainerStyle={styles.container}>
+        {shift ? (
+          <Card style={styles.currentShiftCard}>
+            <Text style={styles.currentShiftLabel}>Turno actual</Text>
+            <Text style={styles.currentShiftTime}>{formatShiftTimeRange(shift)}</Text>
+            <View style={styles.currentShiftAssignee}>
+              <Avatar name={getAssignedToLabel(shift.assignedTo, currentUserId)} size="sm" />
+              <Text style={styles.currentShiftAssigneeName}>
+                {getAssignedToLabel(shift.assignedTo, currentUserId)}
+              </Text>
+            </View>
+          </Card>
+        ) : null}
 
-      <View style={styles.field}>
-        <Text style={styles.label}>Asignar a</Text>
-        <AssigneePicker
-          members={members}
-          currentUserId={currentUserId}
-          selectedUserId={assignedTo}
-          onSelect={setAssignedTo}
-          disabled={isSubmitting}
+        <View style={styles.field}>
+          <Text style={styles.label}>Asignar a</Text>
+          <AssigneePicker
+            members={members}
+            currentUserId={currentUserId}
+            selectedUserId={assignedTo}
+            onSelect={setAssignedTo}
+            disabled={isSubmitting}
+          />
+        </View>
+
+        {submitError ? (
+          <Text style={styles.errorText} accessibilityRole="alert" accessibilityLiveRegion="assertive">
+            {submitError}
+          </Text>
+        ) : null}
+
+        <Button
+          label="Guardar"
+          onPress={handleSubmit}
+          disabled={!canSubmit}
+          loading={isSubmitting}
+          accessibilityLabel="Guardar reasignación"
+          size="lg"
+          full
         />
-      </View>
 
-      {submitError ? (
-        <Text style={styles.errorText} accessibilityRole="alert" accessibilityLiveRegion="assertive">
-          {submitError}
-        </Text>
-      ) : null}
-
-      <Pressable
-        style={({ pressed }) => [
-          styles.button,
-          !canSubmit && styles.buttonDisabled,
-          pressed && canSubmit && styles.buttonPressed,
-        ]}
-        onPress={handleSubmit}
-        disabled={!canSubmit}
-        accessibilityRole="button"
-        accessibilityLabel="Guardar reasignación"
-        accessibilityState={{ disabled: !canSubmit, busy: isSubmitting }}
-      >
-        {isSubmitting ? (
-          <ActivityIndicator color={colors.white} />
-        ) : (
-          <Text style={styles.buttonText}>Guardar</Text>
-        )}
-      </Pressable>
-
-      <Pressable
-        style={styles.secondaryButton}
-        onPress={() => router.back()}
-        disabled={isSubmitting}
-        accessibilityRole="button"
-        accessibilityLabel="Cancelar"
-      >
-        <Text style={styles.secondaryButtonText}>Cancelar</Text>
-      </Pressable>
+        <Button
+          label="Cancelar"
+          onPress={() => router.back()}
+          disabled={isSubmitting}
+          variant="ghost"
+          full
+        />
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
     backgroundColor: colors.surface,
-    padding: 24,
+  },
+  container: {
+    flexGrow: 1,
+    padding: 20,
+  },
+  currentShiftCard: {
+    padding: 16,
+    marginBottom: 20,
+  },
+  currentShiftLabel: {
+    fontSize: 12,
+    fontFamily: fontFamily.regular,
+    color: colors.ink3,
+    marginBottom: 2,
+  },
+  currentShiftTime: {
+    fontSize: 16,
+    fontFamily: fontFamily.bold,
+    fontWeight: '700',
+    color: colors.ink,
+  },
+  currentShiftAssignee: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  currentShiftAssigneeName: {
+    fontSize: 14,
+    fontFamily: fontFamily.semiBold,
+    fontWeight: '600',
+    color: colors.ink,
   },
   centerContainer: {
     flex: 1,
@@ -190,19 +224,6 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 24,
     backgroundColor: colors.surface,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    fontFamily: fontFamily.bold,
-    marginBottom: 4,
-    color: colors.ink,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.ink2,
-    fontFamily: fontFamily.regular,
-    marginBottom: 16,
   },
   field: {
     gap: 6,
@@ -226,49 +247,5 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     fontFamily: fontFamily.medium,
     marginBottom: 8,
-  },
-  retryButton: {
-    marginTop: 8,
-    backgroundColor: colors.brand,
-    borderRadius: radii.sm,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  retryButtonText: {
-    color: colors.white,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
-  },
-  button: {
-    backgroundColor: colors.brand,
-    borderRadius: radii.sm,
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 8,
-  },
-  buttonDisabled: {
-    backgroundColor: colors.brandMid,
-  },
-  buttonPressed: {
-    opacity: 0.85,
-  },
-  buttonText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
-  },
-  secondaryButton: {
-    marginTop: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  secondaryButtonText: {
-    color: colors.brand,
-    fontSize: 15,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
   },
 });

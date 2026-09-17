@@ -1,13 +1,5 @@
-import { useCallback, useState, type ReactNode } from 'react';
-import {
-  ActivityIndicator,
-  Linking,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -18,7 +10,14 @@ import {
   type EmergencyContact,
   type MedicalContact,
 } from './contactsService';
-import { colors, radii, fontFamily } from '../../theme/tokens';
+import { colors, fontFamily } from '../../theme/tokens';
+import { Button } from '../../components/Button';
+import { Card } from '../../components/Card';
+import { AppHeader } from '../../components/AppHeader';
+import { SectionHeader } from '../../components/SectionHeader';
+import { ContactRow } from '../../components/ContactRow';
+import { IconButton } from '../../components/IconButton';
+import { IconEdit, IconHeart, IconPlus } from '../../components/icons';
 
 /**
  * `phase` sigue el mismo criterio de estados explícitos que el resto de las
@@ -118,14 +117,7 @@ export function CaredPersonProfileScreen() {
         <Text style={styles.errorText} accessibilityRole="alert" accessibilityLiveRegion="assertive">
           {errorMessage}
         </Text>
-        <Pressable
-          style={styles.retryButton}
-          onPress={loadInitialData}
-          accessibilityRole="button"
-          accessibilityLabel="Reintentar"
-        >
-          <Text style={styles.retryButtonText}>Reintentar</Text>
-        </Pressable>
+        <Button label="Reintentar" onPress={loadInitialData} />
       </View>
     );
   }
@@ -137,133 +129,94 @@ export function CaredPersonProfileScreen() {
         <Text style={styles.helperText}>
           Creá una familia para empezar a cargar la ficha de la persona cuidada.
         </Text>
-        <Pressable
-          style={styles.retryButton}
-          onPress={() => router.push('/family/create')}
-          accessibilityRole="button"
-          accessibilityLabel="Crear familia"
-        >
-          <Text style={styles.retryButtonText}>Crear familia</Text>
-        </Pressable>
+        <Button label="Crear familia" onPress={() => router.push('/family/create')} />
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>{caredPersonFullName}</Text>
+    <View style={styles.container}>
+      <AppHeader
+        title="Inicio"
+        right={
+          <IconButton
+            icon={<IconEdit size="sm" color={colors.brand} />}
+            onPress={() => router.push('/cared-person/new')}
+            accessibilityLabel="Editar persona cuidada"
+          />
+        }
+      />
 
-      <ContactSection
-        heading="Médicos"
-        emptyLabel="Todavía no hay médicos cargados."
-        addLabel="+ Agregar médico"
-        addAccessibilityLabel="Agregar médico"
-        onAddPress={() => router.push('/cared-person/medical-contacts/new')}
-      >
-        {medicalContacts.map((contact) => (
-          <MedicalContactRow key={contact.id} contact={contact} />
-        ))}
-      </ContactSection>
+      <ScrollView contentContainerStyle={styles.content}>
+        <Card style={styles.profileCard}>
+          <View style={styles.profileHeader}>
+            <View style={styles.profileIconBadge}>
+              <IconHeart size="lg" color={colors.brand} />
+            </View>
+            <Text style={styles.profileName}>{caredPersonFullName}</Text>
+          </View>
+        </Card>
 
-      <ContactSection
-        heading="Contactos de emergencia"
-        emptyLabel="Todavía no hay contactos de emergencia cargados."
-        addLabel="+ Agregar contacto"
-        addAccessibilityLabel="Agregar contacto de emergencia"
-        onAddPress={() => router.push('/cared-person/emergency-contacts/new')}
-      >
-        {emergencyContacts.map((contact) => (
-          <EmergencyContactRow key={contact.id} contact={contact} />
-        ))}
-      </ContactSection>
-    </ScrollView>
-  );
-}
+        <SectionHeader
+          title="Contactos médicos"
+          action={
+            <Button
+              label="Agregar"
+              onPress={() => router.push('/cared-person/medical-contacts/new')}
+              accessibilityLabel="Agregar médico"
+              variant="ghost"
+              size="sm"
+              icon={<IconPlus size="sm" color={colors.brand} />}
+            />
+          }
+        />
+        {medicalContacts.length > 0 ? (
+          <Card style={styles.listCard}>
+            {medicalContacts.map((contact, index) => (
+              <View key={contact.id}>
+                {index > 0 ? <View style={styles.rowDivider} /> : null}
+                <ContactRow
+                  name={contact.fullName}
+                  sub={contact.specialty ?? 'Sin especialidad'}
+                  phone={contact.phone}
+                />
+              </View>
+            ))}
+          </Card>
+        ) : (
+          <Text style={styles.emptySectionText}>Todavía no hay médicos cargados.</Text>
+        )}
 
-interface ContactSectionProps {
-  heading: string;
-  emptyLabel: string;
-  addLabel: string;
-  addAccessibilityLabel: string;
-  onAddPress: () => void;
-  children: ReactNode;
-}
-
-function ContactSection({
-  heading,
-  emptyLabel,
-  addLabel,
-  addAccessibilityLabel,
-  onAddPress,
-  children,
-}: ContactSectionProps) {
-  const hasChildren = Array.isArray(children) ? children.length > 0 : Boolean(children);
-
-  return (
-    <View style={styles.section}>
-      <View style={styles.sectionHeaderRow}>
-        <Text style={styles.sectionHeading}>{heading}</Text>
-        <Pressable
-          style={styles.addButton}
-          onPress={onAddPress}
-          accessibilityRole="button"
-          accessibilityLabel={addAccessibilityLabel}
-        >
-          <Text style={styles.addButtonText}>{addLabel}</Text>
-        </Pressable>
-      </View>
-
-      {hasChildren ? children : <Text style={styles.helperText}>{emptyLabel}</Text>}
-    </View>
-  );
-}
-
-function callPhoneNumber(phone: string) {
-  Linking.openURL(`tel:${phone}`);
-}
-
-interface MedicalContactRowProps {
-  contact: MedicalContact;
-}
-
-function MedicalContactRow({ contact }: MedicalContactRowProps) {
-  return (
-    <View style={styles.contactRow}>
-      <Text style={styles.contactName}>{contact.fullName}</Text>
-      {contact.specialty ? <Text style={styles.contactSubtitle}>{contact.specialty}</Text> : null}
-      {contact.phone ? (
-        <Pressable
-          onPress={() => callPhoneNumber(contact.phone as string)}
-          accessibilityRole="link"
-          accessibilityLabel={`Llamar a ${contact.fullName} al ${contact.phone}`}
-        >
-          <Text style={styles.contactPhone}>{contact.phone}</Text>
-        </Pressable>
-      ) : null}
-      {contact.notes ? <Text style={styles.contactNotes}>{contact.notes}</Text> : null}
-    </View>
-  );
-}
-
-interface EmergencyContactRowProps {
-  contact: EmergencyContact;
-}
-
-function EmergencyContactRow({ contact }: EmergencyContactRowProps) {
-  return (
-    <View style={styles.contactRow}>
-      <Text style={styles.contactName}>{contact.fullName}</Text>
-      {contact.relationship ? (
-        <Text style={styles.contactSubtitle}>{contact.relationship}</Text>
-      ) : null}
-      <Pressable
-        onPress={() => callPhoneNumber(contact.phone)}
-        accessibilityRole="link"
-        accessibilityLabel={`Llamar a ${contact.fullName} al ${contact.phone}`}
-      >
-        <Text style={styles.contactPhone}>{contact.phone}</Text>
-      </Pressable>
-      {contact.notes ? <Text style={styles.contactNotes}>{contact.notes}</Text> : null}
+        <SectionHeader
+          title="Contactos de emergencia"
+          action={
+            <Button
+              label="Agregar"
+              onPress={() => router.push('/cared-person/emergency-contacts/new')}
+              accessibilityLabel="Agregar contacto de emergencia"
+              variant="ghost"
+              size="sm"
+              icon={<IconPlus size="sm" color={colors.brand} />}
+            />
+          }
+        />
+        {emergencyContacts.length > 0 ? (
+          <Card style={styles.listCard}>
+            {emergencyContacts.map((contact, index) => (
+              <View key={contact.id}>
+                {index > 0 ? <View style={styles.rowDivider} /> : null}
+                <ContactRow
+                  name={contact.fullName}
+                  sub={contact.relationship ?? 'Sin relación'}
+                  phone={contact.phone}
+                />
+              </View>
+            ))}
+          </Card>
+        ) : (
+          <Text style={styles.emptySectionText}>Todavía no hay contactos de emergencia cargados.</Text>
+        )}
+      </ScrollView>
     </View>
   );
 }
@@ -274,9 +227,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   content: {
-    padding: 16,
     paddingBottom: 32,
-    gap: 24,
   },
   centerContainer: {
     flex: 1,
@@ -285,12 +236,6 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 24,
     backgroundColor: colors.surface,
-  },
-  title: {
-    fontSize: 22,
-    fontFamily: fontFamily.bold,
-    fontWeight: '700',
-    color: colors.ink,
   },
   helperText: {
     fontSize: 14,
@@ -305,18 +250,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     textAlign: 'center',
   },
-  retryButton: {
-    marginTop: 8,
-    backgroundColor: colors.brand,
-    borderRadius: radii.sm,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  retryButtonText: {
-    color: colors.white,
-    fontFamily: fontFamily.semiBold,
-    fontWeight: '600',
-  },
   emptyTitle: {
     fontSize: 16,
     fontFamily: fontFamily.semiBold,
@@ -324,63 +257,42 @@ const styles = StyleSheet.create({
     color: colors.ink,
     textAlign: 'center',
   },
-  section: {
-    gap: 10,
+  profileCard: {
+    marginHorizontal: 20,
+    marginTop: 20,
+    padding: 20,
   },
-  sectionHeaderRow: {
+  profileHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 16,
   },
-  sectionHeading: {
-    fontSize: 17,
-    fontFamily: fontFamily.bold,
-    fontWeight: '700',
+  profileIconBadge: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: colors.brandLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileName: {
+    flex: 1,
+    fontSize: 20,
+    fontFamily: fontFamily.extraBold,
+    fontWeight: '800',
     color: colors.ink,
   },
-  addButton: {
-    borderRadius: radii.sm,
-    borderWidth: 1,
-    borderColor: colors.brand,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  listCard: {
+    marginHorizontal: 20,
   },
-  addButtonText: {
-    color: colors.brand,
-    fontFamily: fontFamily.semiBold,
-    fontWeight: '600',
-    fontSize: 13,
+  rowDivider: {
+    height: 1,
+    backgroundColor: colors.border,
   },
-  contactRow: {
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-    gap: 2,
-  },
-  contactName: {
-    fontSize: 16,
-    fontFamily: fontFamily.bold,
-    fontWeight: '700',
-    color: colors.ink,
-  },
-  contactSubtitle: {
-    fontSize: 13,
-    fontFamily: fontFamily.regular,
-    color: colors.ink2,
-  },
-  contactPhone: {
-    fontSize: 15,
-    color: colors.brand,
-    fontFamily: fontFamily.semiBold,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  contactNotes: {
-    fontSize: 13,
+  emptySectionText: {
+    fontSize: 14,
     fontFamily: fontFamily.regular,
     color: colors.ink3,
-    fontStyle: 'italic',
-    marginTop: 2,
+    paddingHorizontal: 20,
   },
 });

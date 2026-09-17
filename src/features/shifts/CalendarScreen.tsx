@@ -1,19 +1,28 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { getAssignedToLabel } from './assignedToLabel';
 import {
-  buildCalendarSections,
   formatShiftTimeRange,
-  getRangeForView,
+  getWeekDays,
+  getWeekRange,
+  isSameDay,
   SHIFT_STATUS_LABELS_ES,
+  WEEKDAY_LABELS_ES,
   type CalendarView,
 } from './calendarSections';
 import { LatestShiftHandoverCard } from './LatestShiftHandoverCard';
 import { getCurrentUserFamilyId, getShiftsForFamily, type Shift } from './shiftsService';
 import { supabase } from '../../lib/supabase';
 import { colors, fontFamily, radii } from '../../theme/tokens';
+import { Button } from '../../components/Button';
+import { Card } from '../../components/Card';
+import { Avatar } from '../../components/Avatar';
+import { Badge } from '../../components/Badge';
+import { EmptyState } from '../../components/EmptyState';
+import { Skeleton } from '../../components/Skeleton';
+import { IconCalendar, IconChevronLeft, IconChevronRight, IconClock, IconPlus } from '../../components/icons';
 
 /**
  * `phase` tracks the top-level state of the screen, following the same
@@ -23,19 +32,21 @@ import { colors, fontFamily, radii } from '../../theme/tokens';
  *   yet. PGM-18 closed the gap flagged in PGM-26 (no family creation screen
  *   existed) — this state now offers a CTA into `/family/create`.
  * - 'error': something failed (auth, family lookup, or shifts fetch).
- * - 'ready': shifts loaded (may be an empty list — rendered as its own
- *   empty state, not an error).
+ * - 'ready': shifts loaded (may be an empty list — rendered per-day, not a
+ *   blanket error).
  */
 type Phase = 'loading' | 'no-family' | 'error' | 'ready';
 
-function shiftUnitsPerDayLabel(view: CalendarView): string {
-  return view === 'weekly' ? 'esta semana' : 'este mes';
+function formatMonthLabel(date: Date): string {
+  const label = new Intl.DateTimeFormat('es-AR', { month: 'long', year: 'numeric' }).format(date);
+  return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
 export function CalendarScreen() {
   const router = useRouter();
   const [view, setView] = useState<CalendarView>('weekly');
   const [referenceDate, setReferenceDate] = useState(() => new Date());
+  const [selectedDayIndex, setSelectedDayIndex] = useState(0);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [familyId, setFamilyId] = useState<string | null>(null);
   const [shifts, setShifts] = useState<Shift[]>([]);
@@ -47,7 +58,10 @@ export function CalendarScreen() {
       setPhase('loading');
       setErrorMessage(null);
 
-      const range = getRangeForView(resolvedView, resolvedReferenceDate);
+      const range =
+        resolvedView === 'weekly'
+          ? getWeekRange(resolvedReferenceDate)
+          : { from: resolvedReferenceDate, to: resolvedReferenceDate };
       const result = await getShiftsForFamily(resolvedFamilyId, range);
 
       if (result.error) {
@@ -119,141 +133,178 @@ export function CalendarScreen() {
       }
       return next;
     });
+    setSelectedDayIndex(0);
   }
 
-  const sections = buildCalendarSections(shifts, view);
+  const weekDays = view === 'weekly' ? getWeekDays(getWeekRange(referenceDate)) : [];
+  const shiftsByDay = weekDays.map((day) =>
+    shifts.filter((shift) => isSameDay(new Date(shift.startsAt), day))
+  );
+  const selectedDayShifts = shiftsByDay[selectedDayIndex] ?? [];
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Calendario de turnos</Text>
+      <View style={styles.header}>
+        <View style={styles.headerTopRow}>
+          <Text style={styles.headerTitle}>Turnos</Text>
+          <View style={styles.headerActions}>
+            <Pressable
+              onPress={() => router.push('/shifts/coverage')}
+              accessibilityRole="button"
+              accessibilityLabel="Ver reparto de turnos del mes"
+            >
+              <Text style={styles.coverageLink}>Cobertura</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => router.push('/shifts/new')}
+              accessibilityRole="button"
+              accessibilityLabel="Asignar turno nuevo"
+              style={styles.addButton}
+            >
+              <IconPlus size="sm" color={colors.white} />
+            </Pressable>
+          </View>
+        </View>
 
-      {/* PGM-37: "último traspaso" visible al abrir la app, sin que el usuario lo
-          busque -- CalendarScreen es el "hub" de turnos de la familia (ver PGM-28), el
-          lugar más natural para que esto aparezca solo. La card resuelve su propia
-          carga (RPC de lectura, todavía pendiente de Backend -- ver NOTES) y nunca
-          bloquea el resto de la pantalla. */}
-      {familyId ? (
-        <LatestShiftHandoverCard familyId={familyId} currentUserId={currentUserId} />
-      ) : null}
+        <View style={styles.viewToggleRow}>
+          <ViewToggleButton label="Semana" active={view === 'weekly'} onPress={() => setView('weekly')} />
+          <ViewToggleButton label="Mes" active={view === 'monthly'} onPress={() => setView('monthly')} />
+        </View>
 
-      <View style={styles.toggleRow}>
-        <ViewToggleButton label="Semana" active={view === 'weekly'} onPress={() => setView('weekly')} />
-        <ViewToggleButton label="Mes" active={view === 'monthly'} onPress={() => setView('monthly')} />
+        {view === 'weekly' ? (
+          <>
+            <View style={styles.monthNavRow}>
+              <Pressable
+                onPress={() => handleStep(-1)}
+                accessibilityRole="button"
+                accessibilityLabel="Semana anterior"
+              >
+                <IconChevronLeft size="sm" color={colors.ink2} />
+              </Pressable>
+              <Text style={styles.monthLabel}>{formatMonthLabel(referenceDate)}</Text>
+              <Pressable
+                onPress={() => handleStep(1)}
+                accessibilityRole="button"
+                accessibilityLabel="Semana siguiente"
+              >
+                <IconChevronRight size="sm" color={colors.ink2} />
+              </Pressable>
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.dayPickerRow}
+            >
+              {weekDays.map((day, index) => (
+                <DayPill
+                  key={day.toISOString()}
+                  date={day}
+                  isSelected={index === selectedDayIndex}
+                  hasShift={shiftsByDay[index]?.length > 0}
+                  onPress={() => setSelectedDayIndex(index)}
+                />
+              ))}
+            </ScrollView>
+          </>
+        ) : (
+          <View style={styles.monthNavRow}>
+            <Pressable
+              onPress={() => handleStep(-1)}
+              accessibilityRole="button"
+              accessibilityLabel="Mes anterior"
+            >
+              <IconChevronLeft size="sm" color={colors.ink2} />
+            </Pressable>
+            <Text style={styles.monthLabel}>{formatMonthLabel(referenceDate)}</Text>
+            <Pressable
+              onPress={() => handleStep(1)}
+              accessibilityRole="button"
+              accessibilityLabel="Mes siguiente"
+            >
+              <IconChevronRight size="sm" color={colors.ink2} />
+            </Pressable>
+          </View>
+        )}
       </View>
 
-      {phase === 'ready' || phase === 'error' ? (
-        <View style={styles.navRow}>
-          <Pressable
-            onPress={() => handleStep(-1)}
-            accessibilityRole="button"
-            accessibilityLabel={view === 'weekly' ? 'Semana anterior' : 'Mes anterior'}
-            style={styles.navButton}
-          >
-            <Text style={styles.navButtonText}>{'‹'}</Text>
-          </Pressable>
-          <Text style={styles.navLabel}>{view === 'weekly' ? 'Semana' : 'Mes'}</Text>
-          <Pressable
-            onPress={() => handleStep(1)}
-            accessibilityRole="button"
-            accessibilityLabel={view === 'weekly' ? 'Semana siguiente' : 'Mes siguiente'}
-            style={styles.navButton}
-          >
-            <Text style={styles.navButtonText}>{'›'}</Text>
-          </Pressable>
-        </View>
-      ) : null}
+      <ScrollView contentContainerStyle={styles.content}>
+        {familyId ? (
+          <LatestShiftHandoverCard familyId={familyId} currentUserId={currentUserId} />
+        ) : null}
 
-      {familyId ? (
-        <View style={styles.actionsRow}>
-          <Pressable
-            style={styles.assignButton}
-            onPress={() => router.push('/shifts/new')}
-            accessibilityRole="button"
-            accessibilityLabel="Asignar turno nuevo"
-          >
-            <Text style={styles.assignButtonText}>+ Asignar turno</Text>
-          </Pressable>
-          {/* PGM-28: entry point al panel de reparto -- decisión de navegación
-              documentada en NOTES del agente que lo implementó. Un botón acá
-              es el punto de entrada más natural: este screen ya es el "hub"
-              de turnos de la familia, y el panel de reparto es una vista
-              derivada de los mismos turnos. */}
-          <Pressable
-            style={styles.coverageButton}
-            onPress={() => router.push('/shifts/coverage')}
-            accessibilityRole="button"
-            accessibilityLabel="Ver reparto de turnos del mes"
-          >
-            <Text style={styles.coverageButtonText}>Ver reparto</Text>
-          </Pressable>
-        </View>
-      ) : null}
+        {phase === 'loading' ? (
+          <View style={styles.loadingStack}>
+            <Skeleton height={112} />
+            <Skeleton height={112} />
+          </View>
+        ) : null}
 
-      {phase === 'loading' ? (
-        <View style={styles.centerContent}>
-          <ActivityIndicator />
-          <Text style={styles.helperText}>Cargando turnos…</Text>
-        </View>
-      ) : null}
+        {phase === 'error' ? (
+          <View style={styles.centerContent}>
+            <Text style={styles.errorText} accessibilityRole="alert" accessibilityLiveRegion="assertive">
+              {errorMessage}
+            </Text>
+            <Button label="Reintentar" onPress={handleRetry} />
+          </View>
+        ) : null}
 
-      {phase === 'error' ? (
-        <View style={styles.centerContent}>
-          <Text style={styles.errorText} accessibilityRole="alert" accessibilityLiveRegion="assertive">
-            {errorMessage}
-          </Text>
-          <Pressable
-            style={styles.retryButton}
-            onPress={handleRetry}
-            accessibilityRole="button"
-            accessibilityLabel="Reintentar"
-          >
-            <Text style={styles.retryButtonText}>Reintentar</Text>
-          </Pressable>
-        </View>
-      ) : null}
+        {phase === 'no-family' ? (
+          <EmptyState
+            icon={<IconCalendar size="lg" color={colors.brand} />}
+            title="Todavía no formás parte de ninguna familia."
+            desc="Creá una familia para empezar a coordinar turnos, o pedile a quien te invitó el link de invitación."
+            action={<Button label="Crear familia" onPress={() => router.push('/family/create')} full />}
+          />
+        ) : null}
 
-      {phase === 'no-family' ? (
-        <View style={styles.centerContent}>
-          <Text style={styles.emptyTitle}>Todavía no formás parte de ninguna familia.</Text>
-          <Text style={styles.helperText}>
-            Creá una familia para empezar a coordinar turnos, o pedile a quien te invitó el link
-            de invitación.
-          </Text>
-          <Pressable
-            style={styles.retryButton}
-            onPress={() => router.push('/family/create')}
-            accessibilityRole="button"
-            accessibilityLabel="Crear familia"
-          >
-            <Text style={styles.retryButtonText}>Crear familia</Text>
-          </Pressable>
-        </View>
-      ) : null}
+        {phase === 'ready' && view === 'weekly' ? (
+          <View style={styles.weeklyReady}>
+            <Text style={styles.selectedDayLabel}>
+              {WEEKDAY_LABELS_ES[weekDays[selectedDayIndex]?.getDay() ?? 0]}
+            </Text>
 
-      {phase === 'ready' && sections.length === 0 ? (
-        <View style={styles.centerContent}>
-          <Text style={styles.emptyTitle}>No hay turnos {shiftUnitsPerDayLabel(view)}.</Text>
-        </View>
-      ) : null}
+            {selectedDayShifts.length > 0 ? (
+              <View style={styles.dayCardStack}>
+                {selectedDayShifts.map((shift) => (
+                  <ShiftDayCard
+                    key={shift.id}
+                    shift={shift}
+                    currentUserId={currentUserId}
+                    onReassignPress={() => router.push(`/shifts/${shift.id}/reassign`)}
+                    onHandoverPress={() => router.push(`/shifts/${shift.id}/handover`)}
+                  />
+                ))}
+              </View>
+            ) : (
+              <View style={styles.noShiftToday}>
+                <Text style={styles.noShiftTodayText}>Sin turno para este día</Text>
+              </View>
+            )}
 
-      {phase === 'ready' && sections.length > 0 ? (
-        <SectionList
-          sections={sections}
-          keyExtractor={(item) => item.id}
-          renderSectionHeader={({ section }) => (
-            <Text style={styles.sectionHeader}>{section.title}</Text>
-          )}
-          renderItem={({ item }) => (
-            <ShiftRow
-              shift={item}
-              currentUserId={currentUserId}
-              onReassignPress={() => router.push(`/shifts/${item.id}/reassign`)}
-              onHandoverPress={() => router.push(`/shifts/${item.id}/handover`)}
-            />
-          )}
-          contentContainerStyle={styles.listContent}
-        />
-      ) : null}
+            <View style={styles.weekListSection}>
+              <Text style={styles.weekListTitle}>Esta semana</Text>
+              <View style={styles.weekListStack}>
+                {weekDays.map((day, index) =>
+                  index === selectedDayIndex ? null : (
+                    <WeekListRow
+                      key={day.toISOString()}
+                      date={day}
+                      dayShifts={shiftsByDay[index] ?? []}
+                      currentUserId={currentUserId}
+                      onPress={() => setSelectedDayIndex(index)}
+                    />
+                  )
+                )}
+              </View>
+            </View>
+          </View>
+        ) : null}
+
+        {phase === 'ready' && view === 'monthly' ? (
+          <MonthlyShiftsList shifts={shifts} currentUserId={currentUserId} router={router} />
+        ) : null}
+      </ScrollView>
     </View>
   );
 }
@@ -278,49 +329,167 @@ function ViewToggleButton({ label, active, onPress }: ViewToggleButtonProps) {
   );
 }
 
-interface ShiftRowProps {
+interface DayPillProps {
+  date: Date;
+  isSelected: boolean;
+  hasShift: boolean;
+  onPress: () => void;
+}
+
+/** Pastilla de día del selector semanal -- calco del día del `CalendarScreen` de Figma. */
+function DayPill({ date, isSelected, hasShift, onPress }: DayPillProps) {
+  const weekdayAbbrev = WEEKDAY_LABELS_ES[date.getDay()].slice(0, 3);
+
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${WEEKDAY_LABELS_ES[date.getDay()]} ${date.getDate()}`}
+      accessibilityState={{ selected: isSelected }}
+      style={[styles.dayPill, isSelected && styles.dayPillActive]}
+    >
+      <Text style={[styles.dayPillWeekday, isSelected && styles.dayPillTextActive]}>{weekdayAbbrev}</Text>
+      <Text style={[styles.dayPillNumber, isSelected && styles.dayPillTextActive]}>{date.getDate()}</Text>
+      <View
+        style={[
+          styles.dayPillDot,
+          hasShift && styles.dayPillDotFilled,
+          isSelected && styles.dayPillDotSelected,
+        ]}
+      />
+    </Pressable>
+  );
+}
+
+interface ShiftDayCardProps {
   shift: Shift;
   currentUserId: string | null;
   onReassignPress: () => void;
   onHandoverPress: () => void;
 }
 
-function ShiftRow({ shift, currentUserId, onReassignPress, onHandoverPress }: ShiftRowProps) {
+/** Tarjeta del turno del día seleccionado -- calco de la `Card` de datos del Figma. */
+function ShiftDayCard({ shift, currentUserId, onReassignPress, onHandoverPress }: ShiftDayCardProps) {
   const assigneeLabel = getAssignedToLabel(shift.assignedTo, currentUserId);
 
   return (
-    <View style={styles.shiftRow}>
-      <Text style={styles.shiftTime}>{formatShiftTimeRange(shift)}</Text>
-      <View style={styles.shiftDetails}>
-        <Text style={styles.shiftAssignee}>{assigneeLabel}</Text>
-        {shift.caredPersonName ? (
-          <Text style={styles.shiftCaredPerson}>{shift.caredPersonName}</Text>
-        ) : null}
+    <Card style={styles.dayCard}>
+      <View style={styles.dayCardHeader}>
+        <Avatar name={assigneeLabel} />
+        <View style={styles.dayCardHeaderText}>
+          <Text style={styles.dayCardName}>{assigneeLabel}</Text>
+          {shift.caredPersonName ? (
+            <Text style={styles.dayCardCaredPerson}>{shift.caredPersonName}</Text>
+          ) : null}
+        </View>
+        <Badge label={SHIFT_STATUS_LABELS_ES[shift.status]} variant="brand" />
       </View>
-      <View style={styles.statusBadge}>
-        <Text style={styles.statusBadgeText}>{SHIFT_STATUS_LABELS_ES[shift.status]}</Text>
+
+      <View style={styles.dayCardTimeRow}>
+        <IconClock size="sm" color={colors.ink2} />
+        <Text style={styles.dayCardTime}>{formatShiftTimeRange(shift)}</Text>
       </View>
-      {/* PGM-36: entry point al formulario de cierre de turno (F5, traspaso).
-          Se ofrece en cualquier turno (no solo los 'completed') -- mismo
-          criterio que "Reasignar": la pantalla de cierre es su propia
-          responsable de decidir si tiene sentido cerrarlo, este listado no
-          filtra por estado (ver NOTES del agente). */}
-      <Pressable
-        onPress={onHandoverPress}
-        accessibilityRole="button"
-        accessibilityLabel={`Cerrar turno con traspaso, ${formatShiftTimeRange(shift)}`}
-        style={styles.handoverButton}
-      >
-        <Text style={styles.handoverButtonText}>Cerrar turno</Text>
-      </Pressable>
-      <Pressable
-        onPress={onReassignPress}
-        accessibilityRole="button"
-        accessibilityLabel={`Reasignar turno, actualmente asignado a ${assigneeLabel}`}
-        style={styles.reassignButton}
-      >
-        <Text style={styles.reassignButtonText}>Reasignar</Text>
-      </Pressable>
+
+      <View style={styles.dayCardActions}>
+        <Button label="Reasignar" onPress={onReassignPress} variant="secondary" size="sm" />
+        <Button label="Cerrar turno" onPress={onHandoverPress} variant="secondary" size="sm" />
+      </View>
+    </Card>
+  );
+}
+
+interface WeekListRowProps {
+  date: Date;
+  dayShifts: Shift[];
+  currentUserId: string | null;
+  onPress: () => void;
+}
+
+/** Fila compacta de "esta semana" -- calco del listado del Figma, un turno por fila. */
+function WeekListRow({ date, dayShifts, currentUserId, onPress }: WeekListRowProps) {
+  const firstShift = dayShifts[0];
+  const weekdayAbbrev = WEEKDAY_LABELS_ES[date.getDay()].slice(0, 3);
+
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Ver ${WEEKDAY_LABELS_ES[date.getDay()]} ${date.getDate()}`}
+      style={styles.weekRow}
+    >
+      <Text style={styles.weekRowDay}>{weekdayAbbrev}</Text>
+      {firstShift ? (
+        <>
+          <View style={styles.weekRowDot} />
+          <Avatar name={getAssignedToLabel(firstShift.assignedTo, currentUserId)} size="sm" />
+          <Text style={styles.weekRowName} numberOfLines={1}>
+            {getAssignedToLabel(firstShift.assignedTo, currentUserId)}
+          </Text>
+          <Text style={styles.weekRowTime}>{formatShiftTimeRange(firstShift)}</Text>
+        </>
+      ) : (
+        <Text style={styles.weekRowEmpty}>Sin turno</Text>
+      )}
+    </Pressable>
+  );
+}
+
+interface MonthlyShiftsListProps {
+  shifts: Shift[];
+  currentUserId: string | null;
+  router: ReturnType<typeof useRouter>;
+}
+
+/**
+ * Vista mensual -- el prototipo de Figma Make no tiene una pantalla de mes
+ * (su `CalendarScreen` es 100% semanal), así que acá no hay una referencia
+ * de diseño que calcar. Se mantiene como una lista simple agrupada por
+ * semana, reusando los mismos componentes (`Card`, `Badge`) para que no
+ * desentone visualmente con el resto de la pantalla.
+ */
+function MonthlyShiftsList({ shifts, currentUserId, router }: MonthlyShiftsListProps) {
+  if (shifts.length === 0) {
+    return (
+      <View style={styles.centerContent}>
+        <Text style={styles.noShiftTodayText}>No hay turnos este mes.</Text>
+      </View>
+    );
+  }
+
+  const sorted = [...shifts].sort(
+    (a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime()
+  );
+
+  return (
+    <View style={styles.dayCardStack}>
+      {sorted.map((shift) => (
+        <Card key={shift.id} style={styles.dayCard}>
+          <View style={styles.dayCardHeader}>
+            <Avatar name={getAssignedToLabel(shift.assignedTo, currentUserId)} />
+            <View style={styles.dayCardHeaderText}>
+              <Text style={styles.dayCardName}>
+                {getAssignedToLabel(shift.assignedTo, currentUserId)}
+              </Text>
+              <Text style={styles.dayCardCaredPerson}>{formatShiftTimeRange(shift)}</Text>
+            </View>
+            <Badge label={SHIFT_STATUS_LABELS_ES[shift.status]} variant="brand" />
+          </View>
+          <View style={styles.dayCardActions}>
+            <Button
+              label="Reasignar"
+              onPress={() => router.push(`/shifts/${shift.id}/reassign`)}
+              variant="secondary"
+              size="sm"
+            />
+            <Button
+              label="Cerrar turno"
+              onPress={() => router.push(`/shifts/${shift.id}/handover`)}
+              variant="secondary"
+              size="sm"
+            />
+          </View>
+        </Card>
+      ))}
     </View>
   );
 }
@@ -329,25 +498,54 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.surface,
-    paddingTop: 24,
-    paddingHorizontal: 16,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
+  header: {
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    paddingTop: 12,
+    paddingBottom: 12,
+    paddingHorizontal: 20,
+    gap: 12,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  headerTitle: {
+    fontSize: 18,
     fontFamily: fontFamily.bold,
-    marginBottom: 16,
+    fontWeight: '700',
     color: colors.ink,
   },
-  toggleRow: {
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  coverageLink: {
+    fontSize: 14,
+    fontFamily: fontFamily.semiBold,
+    fontWeight: '600',
+    color: colors.brand,
+  },
+  addButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.brand,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  viewToggleRow: {
     flexDirection: 'row',
     gap: 8,
-    marginBottom: 12,
   },
   toggleButton: {
     flex: 1,
-    paddingVertical: 10,
-    borderRadius: radii.sm,
+    paddingVertical: 8,
+    borderRadius: radii.xl,
     borderWidth: 1,
     borderColor: colors.brand,
     alignItems: 'center',
@@ -359,74 +557,77 @@ const styles = StyleSheet.create({
     color: colors.brand,
     fontWeight: '600',
     fontFamily: fontFamily.semiBold,
+    fontSize: 13,
   },
   toggleButtonTextActive: {
     color: colors.white,
   },
-  navRow: {
+  monthNavRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 16,
-    marginBottom: 12,
-  },
-  navButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-  },
-  navButtonText: {
-    fontSize: 20,
-    color: colors.brand,
-    fontWeight: '700',
-    fontFamily: fontFamily.bold,
-  },
-  navLabel: {
-    fontSize: 14,
-    color: colors.ink2,
-    fontFamily: fontFamily.regular,
-  },
-  actionsRow: {
-    flexDirection: 'row',
     gap: 8,
-    marginBottom: 12,
   },
-  assignButton: {
-    alignSelf: 'flex-start',
+  monthLabel: {
+    fontSize: 16,
+    fontFamily: fontFamily.bold,
+    fontWeight: '700',
+    color: colors.ink,
+  },
+  dayPickerRow: {
+    gap: 4,
+  },
+  dayPill: {
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: radii.xl,
+    minWidth: 52,
+  },
+  dayPillActive: {
     backgroundColor: colors.brand,
-    borderRadius: radii.sm,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
   },
-  assignButtonText: {
+  dayPillWeekday: {
+    fontSize: 12,
+    fontFamily: fontFamily.semiBold,
+    fontWeight: '600',
+    color: colors.ink3,
+  },
+  dayPillNumber: {
+    fontSize: 16,
+    fontFamily: fontFamily.bold,
+    fontWeight: '700',
+    color: colors.ink,
+    marginTop: 2,
+  },
+  dayPillTextActive: {
     color: colors.white,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
   },
-  coverageButton: {
-    alignSelf: 'flex-start',
-    borderRadius: radii.sm,
-    borderWidth: 1,
-    borderColor: colors.brand,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+  dayPillDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.border,
+    marginTop: 6,
   },
-  coverageButtonText: {
-    color: colors.brand,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
+  dayPillDotFilled: {
+    backgroundColor: colors.brand,
+  },
+  dayPillDotSelected: {
+    backgroundColor: colors.white,
+  },
+  content: {
+    padding: 20,
+    gap: 12,
+    paddingBottom: 40,
+  },
+  loadingStack: {
+    gap: 12,
   },
   centerContent: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
-  },
-  helperText: {
-    fontSize: 14,
-    color: colors.ink2,
-    textAlign: 'center',
-    fontFamily: fontFamily.regular,
+    gap: 12,
+    paddingVertical: 32,
   },
   errorText: {
     fontSize: 15,
@@ -435,100 +636,121 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.medium,
     textAlign: 'center',
   },
-  retryButton: {
-    marginTop: 8,
-    backgroundColor: colors.brand,
-    borderRadius: radii.sm,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+  weeklyReady: {
+    gap: 12,
   },
-  retryButtonText: {
-    color: colors.white,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
-    color: colors.ink,
-    textAlign: 'center',
-  },
-  listContent: {
-    paddingBottom: 24,
-  },
-  sectionHeader: {
+  selectedDayLabel: {
     fontSize: 14,
-    fontWeight: '700',
-    fontFamily: fontFamily.bold,
-    color: colors.ink,
-    backgroundColor: colors.surface2,
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    marginTop: 12,
-    borderRadius: radii.sm,
+    fontFamily: fontFamily.semiBold,
+    fontWeight: '600',
+    color: colors.ink3,
   },
-  shiftRow: {
+  dayCardStack: {
+    gap: 12,
+  },
+  dayCard: {
+    padding: 16,
+  },
+  dayCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-    gap: 10,
+    gap: 12,
+    marginBottom: 12,
   },
-  shiftTime: {
-    fontSize: 14,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
-    color: colors.ink,
-    width: 110,
-  },
-  shiftDetails: {
+  dayCardHeaderText: {
     flex: 1,
   },
-  shiftAssignee: {
-    fontSize: 14,
+  dayCardName: {
+    fontSize: 16,
+    fontFamily: fontFamily.bold,
+    fontWeight: '700',
     color: colors.ink,
-    fontFamily: fontFamily.regular,
   },
-  shiftCaredPerson: {
-    fontSize: 12,
+  dayCardCaredPerson: {
+    fontSize: 14,
+    fontFamily: fontFamily.regular,
     color: colors.ink2,
+  },
+  dayCardTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  dayCardTime: {
+    fontSize: 14,
+    fontFamily: fontFamily.semiBold,
+    fontWeight: '600',
+    color: colors.ink2,
+  },
+  dayCardActions: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  noShiftToday: {
+    paddingVertical: 32,
+    alignItems: 'center',
+  },
+  noShiftTodayText: {
+    fontSize: 14,
     fontFamily: fontFamily.regular,
+    color: colors.ink3,
   },
-  statusBadge: {
-    backgroundColor: colors.brandLight,
-    borderRadius: radii.md,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+  weekListSection: {
+    marginTop: 8,
   },
-  statusBadgeText: {
-    fontSize: 12,
-    color: colors.brand,
-    fontWeight: '600',
+  weekListTitle: {
+    fontSize: 14,
     fontFamily: fontFamily.semiBold,
-  },
-  reassignButton: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  reassignButtonText: {
-    fontSize: 12,
-    color: colors.brand,
     fontWeight: '600',
+    color: colors.ink2,
+    marginBottom: 12,
+  },
+  weekListStack: {
+    gap: 8,
+  },
+  weekRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 12,
+    borderRadius: radii.card,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  weekRowDay: {
+    fontSize: 14,
+    fontFamily: fontFamily.bold,
+    fontWeight: '700',
+    color: colors.ink2,
+    width: 32,
+  },
+  weekRowDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.brand,
+  },
+  weekRowName: {
+    flex: 1,
+    fontSize: 14,
     fontFamily: fontFamily.semiBold,
-    textDecorationLine: 'underline',
-  },
-  handoverButton: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  handoverButtonText: {
-    fontSize: 12,
-    color: colors.brand,
     fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
-    textDecorationLine: 'underline',
+    color: colors.ink,
+  },
+  weekRowTime: {
+    fontSize: 12,
+    fontFamily: fontFamily.regular,
+    color: colors.ink3,
+  },
+  weekRowEmpty: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: fontFamily.regular,
+    color: colors.ink3,
   },
 });

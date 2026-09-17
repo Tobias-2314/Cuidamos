@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Share, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { createFamilyInvitation, getCurrentUserRoleInFamily, type FamilyInvitation } from './familyService';
 import { buildInvitationLink, buildInvitationShareMessage } from './invitationLink';
 import { getCurrentUserFamilyId } from '../shifts/shiftsService';
-import { colors, fontFamily, radii } from '../../theme/tokens';
+import { colors, fontFamily } from '../../theme/tokens';
+import { Button } from '../../components/Button';
+import { Card } from '../../components/Card';
+import { AppHeader } from '../../components/AppHeader';
+import { IconShare } from '../../components/icons';
 
 /**
  * `phase` sigue el mismo criterio de estados explícitos que el resto del
@@ -126,14 +130,7 @@ export function InviteFamilyScreen() {
         <Text style={styles.errorText} accessibilityRole="alert" accessibilityLiveRegion="assertive">
           {loadErrorMessage}
         </Text>
-        <Pressable
-          style={styles.retryButton}
-          onPress={loadInitialData}
-          accessibilityRole="button"
-          accessibilityLabel="Reintentar"
-        >
-          <Text style={styles.retryButtonText}>Reintentar</Text>
-        </Pressable>
+        <Button label="Reintentar" onPress={loadInitialData} />
       </View>
     );
   }
@@ -143,14 +140,7 @@ export function InviteFamilyScreen() {
       <View style={styles.centerContainer}>
         <Text style={styles.emptyTitle}>Todavía no formás parte de ninguna familia.</Text>
         <Text style={styles.helperText}>Creá una familia antes de invitar a otros cuidadores.</Text>
-        <Pressable
-          style={styles.retryButton}
-          onPress={() => router.push('/family/create')}
-          accessibilityRole="button"
-          accessibilityLabel="Crear familia"
-        >
-          <Text style={styles.retryButtonText}>Crear familia</Text>
-        </Pressable>
+        <Button label="Crear familia" onPress={() => router.push('/family/create')} />
       </View>
     );
   }
@@ -168,67 +158,72 @@ export function InviteFamilyScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Invitar a un cuidador</Text>
-      <Text style={styles.subtitle}>
-        Generá un link de invitación y compartilo por WhatsApp, email o donde prefieras. Vence
-        a los 7 días.
-      </Text>
-
-      {generateError ? (
-        <Text style={styles.errorText} accessibilityRole="alert" accessibilityLiveRegion="assertive">
-          {generateError}
+    <View style={styles.screen}>
+      <AppHeader title="Invitar a la familia" onBack={() => router.back()} />
+      <View style={styles.container}>
+        <Text style={styles.subtitle}>
+          Generá un link de invitación y compartilo por WhatsApp, email o donde prefieras. Vence
+          a los 7 días.
         </Text>
-      ) : null}
 
-      <Pressable
-        style={({ pressed }) => [
-          styles.button,
-          isGenerating && styles.buttonDisabled,
-          pressed && !isGenerating && styles.buttonPressed,
-        ]}
-        onPress={handleGenerateInvitation}
-        disabled={isGenerating}
-        accessibilityRole="button"
-        accessibilityLabel="Generar invitación"
-        accessibilityState={{ busy: isGenerating }}
-      >
-        {isGenerating ? (
-          <ActivityIndicator color={colors.white} />
-        ) : (
-          <Text style={styles.buttonText}>
-            {invitation ? 'Generar otra invitación' : 'Generar invitación'}
+        {generateError ? (
+          <Text style={styles.errorText} accessibilityRole="alert" accessibilityLiveRegion="assertive">
+            {generateError}
           </Text>
-        )}
-      </Pressable>
+        ) : null}
 
-      {invitation ? (
-        <View style={styles.invitationBox}>
-          <Text style={styles.invitationLabel}>Link de invitación</Text>
-          <Text style={styles.invitationLink} selectable>
-            {buildInvitationLink(invitation.token)}
-          </Text>
-          <Text style={styles.helperText}>Vence el {expiresAtLabel}.</Text>
+        {invitation ? (
+          <Card style={styles.invitationCard}>
+            <Text style={styles.invitationLabel}>Link de invitación</Text>
+            <Text style={styles.invitationLink} selectable>
+              {buildInvitationLink(invitation.token)}
+            </Text>
+            <Text style={styles.helperText}>Vence el {expiresAtLabel}.</Text>
+          </Card>
+        ) : null}
 
-          <Pressable
-            style={styles.secondaryButton}
+        <Button
+          label={invitation ? 'Generar otra invitación' : 'Generar invitación'}
+          onPress={handleGenerateInvitation}
+          disabled={isGenerating}
+          loading={isGenerating}
+          accessibilityLabel="Generar invitación"
+          size="lg"
+          full
+        />
+
+        {invitation ? (
+          <Button
+            label="Compartir enlace de invitación"
             onPress={handleShare}
-            accessibilityRole="button"
             accessibilityLabel="Compartir invitación"
-          >
-            <Text style={styles.secondaryButtonText}>Compartir</Text>
-          </Pressable>
-        </View>
-      ) : null}
+            variant="outline"
+            size="lg"
+            full
+            icon={<IconShare size="sm" color={colors.brand} />}
+          />
+        ) : null}
+
+        <Button
+          label="Ir al inicio"
+          onPress={() => router.push('/cared-person')}
+          variant="ghost"
+          full
+        />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
     backgroundColor: colors.surface,
-    padding: 24,
+  },
+  container: {
+    flex: 1,
+    padding: 20,
+    gap: 12,
   },
   centerContainer: {
     flex: 1,
@@ -238,18 +233,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     backgroundColor: colors.surface,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    fontFamily: fontFamily.bold,
-    color: colors.ink,
-    marginBottom: 4,
-  },
   subtitle: {
     fontSize: 14,
     fontFamily: fontFamily.regular,
     color: colors.ink2,
-    marginBottom: 20,
+    marginBottom: 8,
   },
   helperText: {
     fontSize: 14,
@@ -272,70 +260,24 @@ const styles = StyleSheet.create({
     color: colors.ink,
     textAlign: 'center',
   },
-  retryButton: {
-    marginTop: 8,
-    backgroundColor: colors.brand,
-    borderRadius: radii.sm,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  retryButtonText: {
-    color: colors.white,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
-  },
-  button: {
-    backgroundColor: colors.brand,
-    borderRadius: radii.sm,
-    paddingVertical: 14,
+  invitationCard: {
     alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonDisabled: {
-    backgroundColor: colors.brandMid,
-  },
-  buttonPressed: {
-    opacity: 0.85,
-  },
-  buttonText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
-  },
-  invitationBox: {
-    marginTop: 24,
-    padding: 16,
-    borderRadius: radii.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface2,
-    gap: 6,
+    padding: 20,
+    gap: 8,
   },
   invitationLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
-    color: colors.ink,
+    fontSize: 12,
+    fontWeight: '700',
+    fontFamily: fontFamily.bold,
+    color: colors.ink3,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   invitationLink: {
     fontSize: 15,
-    color: colors.ink,
-    fontWeight: '500',
-    fontFamily: fontFamily.medium,
-  },
-  secondaryButton: {
-    marginTop: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.brand,
-    borderRadius: radii.sm,
-  },
-  secondaryButtonText: {
-    color: colors.white,
-    fontSize: 15,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
+    color: colors.brand,
+    fontWeight: '700',
+    fontFamily: fontFamily.bold,
+    textAlign: 'center',
   },
 });

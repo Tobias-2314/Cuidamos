@@ -1,21 +1,21 @@
 import { z } from 'zod';
 
 import { supabase } from '../../lib/supabase';
+import {
+  normalizeUnexpectedError as normalizeUnexpectedServiceError,
+  type ServiceError,
+  type ServiceResult,
+} from '../../lib/serviceResult';
 
 /**
  * Normalized error shape returned by every function in this module — mismo
- * patrón que `medicationsService.ts`/`familyService.ts`. Nunca expone el
- * payload crudo de Supabase, solo un `code` estable y un `message`
- * user-facing.
+ * shape compartido que el resto de los `*Service.ts` (ver
+ * `lib/serviceResult.ts`). Nunca expone el payload crudo de Supabase, solo
+ * un `code` estable y un `message` user-facing.
  */
-export interface CaredPersonsServiceError {
-  code: string;
-  message: string;
-}
+export type CaredPersonsServiceError = ServiceError;
 
-export type CaredPersonsResult<T> =
-  | { data: T; error: null }
-  | { data: null; error: CaredPersonsServiceError };
+export type CaredPersonsResult<T> = ServiceResult<T>;
 
 export interface CaredPerson {
   id: string;
@@ -50,17 +50,8 @@ const caredPersonRowSchema = z.object({
   created_at: z.string(),
 });
 
-function normalizeUnexpectedError(context: string, _err: unknown): CaredPersonsServiceError {
-  // Never surface the raw error — it may wrap a network response or other
-  // sensitive request/response data. Log only a non-sensitive marker.
-  if (process.env.NODE_ENV !== 'production') {
-    console.warn(`[caredPersonsService] unexpected error in ${context}`);
-  }
-
-  return {
-    code: 'unexpected_error',
-    message: GENERIC_ERROR_MESSAGE,
-  };
+function normalizeUnexpectedError(context: string, err: unknown): CaredPersonsServiceError {
+  return normalizeUnexpectedServiceError('caredPersonsService', context, err, GENERIC_ERROR_MESSAGE);
 }
 
 function mapCaredPersonRow(row: z.infer<typeof caredPersonRowSchema>): CaredPerson {

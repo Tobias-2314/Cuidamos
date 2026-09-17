@@ -1,23 +1,25 @@
 import { z } from 'zod';
 
 import { supabase } from '../../lib/supabase';
+import {
+  normalizeUnexpectedError as normalizeUnexpectedServiceError,
+  type ServiceError,
+  type ServiceResult,
+} from '../../lib/serviceResult';
 
 /**
  * Normalized error shape returned by every function in this module — mismo
- * patrón que `authService.ts` / `shiftsService.ts` / `medicationsService.ts`.
- * Nunca carga el payload crudo de Supabase, solo un `code` estable y un
- * `message` pensado para mostrarse al usuario.
+ * shape compartido que el resto de los `*Service.ts` (ver
+ * `lib/serviceResult.ts`). Nunca carga el payload crudo de Supabase, solo un
+ * `code` estable y un `message` pensado para mostrarse al usuario.
  *
  * EXCEPCIÓN documentada: `acceptFamilyInvitation` es la única función de este
  * módulo que SÍ propaga `error.message` tal cual viene de la RPC en vez de un
  * mensaje genérico — ver el comentario en esa función para el porqué.
  */
-export interface FamilyServiceError {
-  code: string;
-  message: string;
-}
+export type FamilyServiceError = ServiceError;
 
-export type FamilyResult<T> = { data: T; error: null } | { data: null; error: FamilyServiceError };
+export type FamilyResult<T> = ServiceResult<T>;
 
 export type FamilyMemberRole = 'admin' | 'cuidador';
 
@@ -55,17 +57,8 @@ const acceptInvitationRowSchema = z.object({
   role: roleSchema,
 });
 
-function normalizeUnexpectedError(context: string, _err: unknown): FamilyServiceError {
-  // Nunca exponemos el error crudo -- puede envolver una respuesta de red u
-  // otro dato sensible. Solo logueamos un marcador no sensible.
-  if (process.env.NODE_ENV !== 'production') {
-    console.warn(`[familyService] unexpected error in ${context}`);
-  }
-
-  return {
-    code: 'unexpected_error',
-    message: GENERIC_ERROR_MESSAGE,
-  };
+function normalizeUnexpectedError(context: string, err: unknown): FamilyServiceError {
+  return normalizeUnexpectedServiceError('familyService', context, err, GENERIC_ERROR_MESSAGE);
 }
 
 /**

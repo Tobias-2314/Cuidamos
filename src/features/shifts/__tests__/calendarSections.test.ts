@@ -2,7 +2,9 @@ import {
   buildCalendarSections,
   formatShiftTimeRange,
   getMonthRange,
+  getWeekDays,
   getWeekRange,
+  isSameDay,
 } from '../calendarSections';
 import type { Shift } from '../shiftsService';
 
@@ -146,5 +148,40 @@ describe('getMonthRange', () => {
     // Assert
     expect(range.from).toEqual(new Date(2026, 8, 1, 0, 0, 0, 0));
     expect(range.to).toEqual(new Date(2026, 9, 1, 0, 0, 0, 0));
+  });
+});
+
+describe('getWeekDays', () => {
+  test('returns the 7 days of the week starting on the range\'s Monday', () => {
+    // Arrange
+    const range = getWeekRange(new Date(2026, 8, 16)); // miércoles 16/9/2026
+
+    // Act
+    const days = getWeekDays(range);
+
+    // Assert
+    expect(days).toHaveLength(7);
+    expect(days[0]).toEqual(new Date(2026, 8, 14)); // lunes
+    expect(days[6]).toEqual(new Date(2026, 8, 20)); // domingo
+  });
+});
+
+describe('isSameDay', () => {
+  test('returns true for two dates on the same calendar day with different times', () => {
+    // Arrange
+    const morning = new Date(2026, 8, 16, 8, 0);
+    const night = new Date(2026, 8, 16, 23, 30);
+
+    // Act & Assert
+    expect(isSameDay(morning, night)).toBe(true);
+  });
+
+  test('returns false for dates on different days', () => {
+    // Arrange
+    const day1 = new Date(2026, 8, 16);
+    const day2 = new Date(2026, 8, 17);
+
+    // Act & Assert
+    expect(isSameDay(day1, day2)).toBe(false);
   });
 });

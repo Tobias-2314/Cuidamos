@@ -1,11 +1,11 @@
+import { supabase } from '../../../lib/supabase';
+import { createCaredPerson } from '../caredPersonsService';
+
 jest.mock('../../../lib/supabase', () => ({
   supabase: {
     rpc: jest.fn(),
   },
 }));
-
-import { supabase } from '../../../lib/supabase';
-import { createCaredPerson } from '../caredPersonsService';
 
 const mockedRpc = supabase.rpc as jest.Mock;
 

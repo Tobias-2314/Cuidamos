@@ -3,11 +3,9 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -19,7 +17,11 @@ import {
 } from './shiftHandoverValidation';
 import { createShiftHandover } from './shiftHandoversService';
 import { getShiftById, type Shift } from './shiftsService';
-import { colors, fontFamily, radii } from '../../theme/tokens';
+import { colors, fontFamily } from '../../theme/tokens';
+import { Button } from '../../components/Button';
+import { TextField } from '../../components/TextField';
+import { Card } from '../../components/Card';
+import { AppHeader } from '../../components/AppHeader';
 
 interface ShiftHandoverFormScreenProps {
   shiftId: string;
@@ -146,14 +148,7 @@ export function ShiftHandoverFormScreen({ shiftId }: ShiftHandoverFormScreenProp
         <Text style={styles.errorText} accessibilityRole="alert" accessibilityLiveRegion="assertive">
           {loadErrorMessage}
         </Text>
-        <Pressable
-          style={styles.retryButton}
-          onPress={loadShift}
-          accessibilityRole="button"
-          accessibilityLabel="Reintentar"
-        >
-          <Text style={styles.retryButtonText}>Reintentar</Text>
-        </Pressable>
+        <Button label="Reintentar" onPress={loadShift} />
       </View>
     );
   }
@@ -165,49 +160,74 @@ export function ShiftHandoverFormScreen({ shiftId }: ShiftHandoverFormScreenProp
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <AppHeader title="Traspaso de turno" onBack={() => router.back()} />
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>Cerrar turno</Text>
-        {shift ? <Text style={styles.subtitle}>{formatShiftTimeRange(shift)}</Text> : null}
+        {shift ? (
+          <Card style={styles.shiftCard}>
+            <Text style={styles.shiftCardLabel}>Turno que cerrás</Text>
+            <Text style={styles.shiftCardTime}>{formatShiftTimeRange(shift)}</Text>
+          </Card>
+        ) : null}
         <Text style={styles.helperIntro}>
           Dejá una nota rápida para quien siga el cuidado. Todos los campos son opcionales, pero
           completá al menos uno.
         </Text>
 
-        <HandoverField
-          label="Resumen del turno"
-          value={resumen}
-          onChangeText={setResumen}
-          placeholder="Ej. tranquilo, sin incidentes"
-          editable={!isSubmitting}
-          accessibilityLabel="Resumen del turno"
-        />
+        <View style={styles.field}>
+          <TextField
+            label="Resumen del turno"
+            value={resumen}
+            onChangeText={setResumen}
+            placeholder="Ej. tranquilo, sin incidentes"
+            editable={!isSubmitting}
+            accessibilityLabel="Resumen del turno"
+            multiline
+            maxLength={MAX_SHIFT_HANDOVER_FIELD_LENGTH}
+            style={styles.inputMultiline}
+          />
+        </View>
 
-        <HandoverField
-          label="Comida"
-          value={comida}
-          onChangeText={setComida}
-          placeholder="Ej. almorzó bien, cenó poco"
-          editable={!isSubmitting}
-          accessibilityLabel="Qué comió la persona cuidada"
-        />
+        <View style={styles.field}>
+          <TextField
+            label="Comida"
+            value={comida}
+            onChangeText={setComida}
+            placeholder="Ej. almorzó bien, cenó poco"
+            editable={!isSubmitting}
+            accessibilityLabel="Qué comió la persona cuidada"
+            multiline
+            maxLength={MAX_SHIFT_HANDOVER_FIELD_LENGTH}
+            style={styles.inputMultiline}
+          />
+        </View>
 
-        <HandoverField
-          label="Ánimo"
-          value={animo}
-          onChangeText={setAnimo}
-          placeholder="Ej. de buen humor, algo cansada"
-          editable={!isSubmitting}
-          accessibilityLabel="Ánimo o estado de la persona cuidada"
-        />
+        <View style={styles.field}>
+          <TextField
+            label="Ánimo"
+            value={animo}
+            onChangeText={setAnimo}
+            placeholder="Ej. de buen humor, algo cansada"
+            editable={!isSubmitting}
+            accessibilityLabel="Ánimo o estado de la persona cuidada"
+            multiline
+            maxLength={MAX_SHIFT_HANDOVER_FIELD_LENGTH}
+            style={styles.inputMultiline}
+          />
+        </View>
 
-        <HandoverField
-          label="Pendientes para el próximo turno"
-          value={pendientes}
-          onChangeText={setPendientes}
-          placeholder="Ej. renovar receta, llamar al médico el lunes"
-          editable={!isSubmitting}
-          accessibilityLabel="Pendientes para el próximo turno"
-        />
+        <View style={styles.field}>
+          <TextField
+            label="Pendientes para el próximo turno"
+            value={pendientes}
+            onChangeText={setPendientes}
+            placeholder="Ej. renovar receta, llamar al médico el lunes"
+            editable={!isSubmitting}
+            accessibilityLabel="Pendientes para el próximo turno"
+            multiline
+            maxLength={MAX_SHIFT_HANDOVER_FIELD_LENGTH}
+            style={styles.inputMultiline}
+          />
+        </View>
 
         {message ? (
           <Text style={styles.errorText} accessibilityRole="alert" accessibilityLiveRegion="polite">
@@ -225,71 +245,25 @@ export function ShiftHandoverFormScreen({ shiftId }: ShiftHandoverFormScreenProp
           </Text>
         ) : null}
 
-        <Pressable
-          style={({ pressed }) => [
-            styles.button,
-            !canSubmit && styles.buttonDisabled,
-            pressed && canSubmit && styles.buttonPressed,
-          ]}
+        <Button
+          label="Guardar traspaso"
           onPress={handleSubmit}
           disabled={!canSubmit}
-          accessibilityRole="button"
+          loading={isSubmitting}
           accessibilityLabel="Guardar traspaso de turno"
-          accessibilityState={{ disabled: !canSubmit, busy: isSubmitting }}
-        >
-          {isSubmitting ? (
-            <ActivityIndicator color={colors.white} />
-          ) : (
-            <Text style={styles.buttonText}>Guardar traspaso</Text>
-          )}
-        </Pressable>
+          size="lg"
+          full
+        />
 
-        <Pressable
-          style={styles.secondaryButton}
+        <Button
+          label="Cancelar"
           onPress={() => router.back()}
           disabled={isSubmitting}
-          accessibilityRole="button"
-          accessibilityLabel="Cancelar"
-        >
-          <Text style={styles.secondaryButtonText}>Cancelar</Text>
-        </Pressable>
+          variant="ghost"
+          full
+        />
       </ScrollView>
     </KeyboardAvoidingView>
-  );
-}
-
-interface HandoverFieldProps {
-  label: string;
-  value: string;
-  onChangeText: (value: string) => void;
-  placeholder: string;
-  editable: boolean;
-  accessibilityLabel: string;
-}
-
-function HandoverField({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  editable,
-  accessibilityLabel,
-}: HandoverFieldProps) {
-  return (
-    <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
-      <TextInput
-        style={[styles.input, styles.inputMultiline]}
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={colors.ink3}
-        editable={editable}
-        multiline
-        maxLength={MAX_SHIFT_HANDOVER_FIELD_LENGTH}
-        accessibilityLabel={accessibilityLabel}
-      />
-    </View>
   );
 }
 
@@ -300,7 +274,7 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     backgroundColor: colors.surface,
-    padding: 24,
+    padding: 20,
     gap: 4,
   },
   centerContainer: {
@@ -311,18 +285,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     backgroundColor: colors.surface,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    fontFamily: fontFamily.bold,
-    marginBottom: 4,
-    color: colors.ink,
+  shiftCard: {
+    padding: 16,
+    marginBottom: 16,
   },
-  subtitle: {
-    fontSize: 14,
-    color: colors.ink2,
+  shiftCardLabel: {
+    fontSize: 12,
     fontFamily: fontFamily.regular,
-    marginBottom: 4,
+    color: colors.ink3,
+    marginBottom: 2,
+  },
+  shiftCardTime: {
+    fontSize: 16,
+    fontFamily: fontFamily.bold,
+    fontWeight: '700',
+    color: colors.ink,
   },
   helperIntro: {
     fontSize: 13,
@@ -331,24 +308,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   field: {
-    gap: 6,
     marginBottom: 14,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
-    color: colors.ink,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.sm,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: colors.ink,
-    fontFamily: fontFamily.regular,
   },
   inputMultiline: {
     minHeight: 72,
@@ -366,49 +326,5 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     fontFamily: fontFamily.medium,
     marginBottom: 8,
-  },
-  retryButton: {
-    marginTop: 8,
-    backgroundColor: colors.brand,
-    borderRadius: radii.sm,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  retryButtonText: {
-    color: colors.white,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
-  },
-  button: {
-    backgroundColor: colors.brand,
-    borderRadius: radii.sm,
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 8,
-  },
-  buttonDisabled: {
-    backgroundColor: colors.brandMid,
-  },
-  buttonPressed: {
-    opacity: 0.85,
-  },
-  buttonText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
-  },
-  secondaryButton: {
-    marginTop: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  secondaryButtonText: {
-    color: colors.brand,
-    fontSize: 15,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
   },
 });

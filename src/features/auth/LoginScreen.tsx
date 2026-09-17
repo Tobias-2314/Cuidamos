@@ -1,19 +1,45 @@
 import { useState } from 'react';
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
+import { useRouter } from 'expo-router';
 
-import { signInWithMagicLink } from './authService';
+import { signInWithGoogle, signInWithMagicLink } from './authService';
 import { isValidEmail } from './isValidEmail';
 import { colors, radii, fontFamily } from '../../theme/tokens';
+import { Button } from '../../components/Button';
+import { TextField } from '../../components/TextField';
+import { Divider } from '../../components/Divider';
+
+/**
+ * Corazón del prototipo de Figma Make (mismo path SVG que `IHeart` en
+ * `App.tsx`). El prototipo no le fija color explícito sobre el fondo
+ * `bg-brand` -- heredaría el texto oscuro del body y quedaría casi
+ * invisible. Cada otro uso de un ícono sobre `bg-brand` sólido en ese mismo
+ * archivo sí fija `text-white`, así que replicamos esa convención acá en vez
+ * del olvido puntual del prototipo.
+ */
+function HeartLogo() {
+  return (
+    <View style={styles.logoBadge}>
+      <Svg width={32} height={32} viewBox="0 0 24 24" fill="none">
+        <Path
+          d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"
+          stroke={colors.white}
+          strokeWidth={1.85}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </Svg>
+    </View>
+  );
+}
 
 /**
  * `phase` tracks which screen the user sees:
@@ -33,11 +59,15 @@ type Phase = 'form' | 'sent';
  * pantalla de auth.
  */
 export function LoginScreen() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [phase, setPhase] = useState<Phase>('form');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
+  const [googleError, setGoogleError] = useState<string | null>(null);
 
   const [sentToEmail, setSentToEmail] = useState<string | null>(null);
   const [isResending, setIsResending] = useState(false);
@@ -64,6 +94,29 @@ export function LoginScreen() {
 
     setSentToEmail(result.data.email);
     setPhase('sent');
+  }
+
+  async function handleGoogleSignIn() {
+    if (isGoogleSubmitting) {
+      return;
+    }
+
+    setIsGoogleSubmitting(true);
+    setGoogleError(null);
+
+    const result = await signInWithGoogle();
+
+    setIsGoogleSubmitting(false);
+
+    if (result.error) {
+      // Cancelar el picker de Google no es un error real -- no lo mostramos.
+      if (result.error.code !== 'oauth_cancelled') {
+        setGoogleError(result.error.message);
+      }
+      return;
+    }
+
+    router.replace('/calendar');
   }
 
   async function handleResend() {
@@ -117,69 +170,74 @@ export function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
-        contentContainerStyle={styles.container}
+        contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.title}>Cuidamos</Text>
-        <Text style={styles.subtitle}>
-          Coordiná el cuidado de tu familia, todo en un solo lugar.
-        </Text>
+        <View style={styles.centeredGroup}>
+          <View style={styles.header}>
+            <HeartLogo />
+            <View>
+              <Text style={styles.title}>Cuidamos</Text>
+              <Text style={styles.subtitle}>Coordiná el cuidado en familia</Text>
+            </View>
+          </View>
 
-        <View style={styles.form}>
-          <Text style={styles.label} nativeID="emailLabel">
-            Tu email
-          </Text>
-          <TextInput
-            style={styles.input}
-            value={email}
-            onChangeText={handleChangeEmail}
-            placeholder="nombre@ejemplo.com"
-            placeholderTextColor={colors.ink3}
-            keyboardType="email-address"
-            textContentType="emailAddress"
-            autoComplete="email"
-            autoCapitalize="none"
-            autoCorrect={false}
-            editable={!isSubmitting}
-            returnKeyType="send"
-            onSubmitEditing={handleSendMagicLink}
-            accessibilityLabel="Tu email"
-            accessibilityLabelledBy="emailLabel"
-            accessibilityHint="Ingresá el email con el que querés entrar a Cuidamos"
-          />
-          <Text style={styles.helperText}>
-            Te vamos a mandar un link para entrar. No necesitás contraseña.
-          </Text>
+          <View style={styles.form}>
+            <TextField
+              label="Tu email"
+              value={email}
+              onChangeText={handleChangeEmail}
+              placeholder="nombre@ejemplo.com"
+              keyboardType="email-address"
+              textContentType="emailAddress"
+              autoComplete="email"
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!isSubmitting}
+              returnKeyType="send"
+              onSubmitEditing={handleSendMagicLink}
+              accessibilityHint="Ingresá el email con el que querés entrar a Cuidamos"
+              hint="Te vamos a mandar un link para entrar. No necesitás contraseña."
+              error={formError}
+            />
 
-          {formError ? (
-            <Text
-              style={styles.errorText}
-              accessibilityRole="alert"
-              accessibilityLiveRegion="assertive"
-            >
-              {formError}
-            </Text>
-          ) : null}
+            <Button
+              label="Enviar link mágico"
+              onPress={handleSendMagicLink}
+              disabled={!canSubmit}
+              loading={isSubmitting}
+              size="lg"
+              full
+            />
+          </View>
 
-          <Pressable
-            style={({ pressed }) => [
-              styles.button,
-              !canSubmit && styles.buttonDisabled,
-              pressed && canSubmit && styles.buttonPressed,
-            ]}
-            onPress={handleSendMagicLink}
-            disabled={!canSubmit}
-            accessibilityRole="button"
-            accessibilityLabel="Enviar link mágico"
-            accessibilityState={{ disabled: !canSubmit, busy: isSubmitting }}
-          >
-            {isSubmitting ? (
-              <ActivityIndicator color={colors.white} />
-            ) : (
-              <Text style={styles.buttonText}>Enviar link mágico</Text>
-            )}
-          </Pressable>
+          <View style={styles.googleSection}>
+            <Divider label="o" />
+
+            {googleError ? (
+              <Text
+                style={styles.errorText}
+                accessibilityRole="alert"
+                accessibilityLiveRegion="assertive"
+              >
+                {googleError}
+              </Text>
+            ) : null}
+
+            <Button
+              label="Continuar con Google"
+              onPress={handleGoogleSignIn}
+              variant="outline"
+              loading={isGoogleSubmitting}
+              size="lg"
+              full
+            />
+          </View>
         </View>
+
+        <Text style={styles.legalText}>
+          Al continuar aceptás nuestros Términos y Política de Privacidad
+        </Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -219,29 +277,17 @@ function SentConfirmation({
         </Text>
       ) : null}
 
-      <Pressable
-        style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
-        onPress={onResend}
-        disabled={isResending}
-        accessibilityRole="button"
-        accessibilityLabel="Reenviar el link"
-        accessibilityState={{ busy: isResending }}
-      >
-        {isResending ? (
-          <ActivityIndicator color={colors.white} />
-        ) : (
-          <Text style={styles.buttonText}>Reenviar el link</Text>
-        )}
-      </Pressable>
-
-      <Pressable
-        style={styles.secondaryButton}
-        onPress={onEditEmail}
-        accessibilityRole="button"
-        accessibilityLabel="Usar otro email"
-      >
-        <Text style={styles.secondaryButtonText}>Usar otro email</Text>
-      </Pressable>
+      <View style={styles.sentActions}>
+        <Button
+          label="Reenviar el link"
+          onPress={onResend}
+          disabled={isResending}
+          loading={isResending}
+          size="lg"
+          full
+        />
+        <Button label="Usar otro email" onPress={onEditEmail} variant="ghost" full />
+      </View>
     </View>
   );
 }
@@ -257,11 +303,46 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 24,
   },
+  scrollContent: {
+    flexGrow: 1,
+    backgroundColor: colors.surface,
+  },
+  centeredGroup: {
+    flex: 1,
+    justifyContent: 'center',
+    gap: 32,
+    paddingHorizontal: 24,
+    paddingTop: 32,
+  },
+  header: {
+    alignItems: 'center',
+    gap: 12,
+  },
+  logoBadge: {
+    width: 80,
+    height: 80,
+    borderRadius: radii.badge,
+    backgroundColor: colors.brand,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.ink,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  legalText: {
+    textAlign: 'center',
+    fontSize: 12,
+    fontFamily: fontFamily.regular,
+    color: colors.ink3,
+    paddingHorizontal: 24,
+    paddingBottom: 32,
+  },
   title: {
-    fontSize: 32,
-    fontFamily: fontFamily.bold,
-    fontWeight: '700',
-    marginBottom: 8,
+    fontSize: 30,
+    fontFamily: fontFamily.extraBold,
+    fontWeight: '800',
     textAlign: 'center',
     color: colors.ink,
   },
@@ -270,69 +351,30 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontFamily: fontFamily.regular,
     color: colors.ink2,
-    marginBottom: 32,
+    marginTop: 4,
   },
   form: {
-    gap: 8,
+    gap: 12,
   },
-  label: {
-    fontSize: 14,
-    fontFamily: fontFamily.semiBold,
-    fontWeight: '600',
-    color: colors.ink,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.sm,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    fontFamily: fontFamily.regular,
-    color: colors.ink,
+  googleSection: {
+    gap: 12,
   },
   helperText: {
     fontSize: 13,
     fontFamily: fontFamily.regular,
     color: colors.ink3,
+    marginBottom: 12,
   },
   errorText: {
     fontSize: 14,
     color: colors.error,
     fontFamily: fontFamily.medium,
     fontWeight: '500',
+    marginBottom: 12,
   },
-  button: {
-    backgroundColor: colors.brand,
-    borderRadius: radii.sm,
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
+  sentActions: {
+    gap: 8,
     marginTop: 8,
-  },
-  buttonDisabled: {
-    backgroundColor: colors.brandMid,
-  },
-  buttonPressed: {
-    opacity: 0.85,
-  },
-  buttonText: {
-    color: colors.white,
-    fontSize: 16,
-    fontFamily: fontFamily.semiBold,
-    fontWeight: '600',
-  },
-  secondaryButton: {
-    marginTop: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  secondaryButtonText: {
-    color: colors.brand,
-    fontSize: 15,
-    fontFamily: fontFamily.semiBold,
-    fontWeight: '600',
   },
   sentBody: {
     fontSize: 16,

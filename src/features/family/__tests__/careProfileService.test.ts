@@ -1,3 +1,6 @@
+import { supabase } from '../../../lib/supabase';
+import { getCurrentUserCareProfile, updateCareProfile } from '../careProfileService';
+
 jest.mock('../../../lib/supabase', () => ({
   supabase: {
     auth: {
@@ -6,9 +9,6 @@ jest.mock('../../../lib/supabase', () => ({
     from: jest.fn(),
   },
 }));
-
-import { supabase } from '../../../lib/supabase';
-import { getCurrentUserCareProfile, updateCareProfile } from '../careProfileService';
 
 const mockedGetUser = supabase.auth.getUser as jest.Mock;
 const mockedFrom = supabase.from as jest.Mock;

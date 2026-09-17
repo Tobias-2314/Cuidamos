@@ -3,11 +3,9 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -19,7 +17,10 @@ import {
   updateMedication,
 } from './medicationsService';
 import { getCurrentUserFamilyId } from '../shifts/shiftsService';
-import { colors, fontFamily, radii } from '../../theme/tokens';
+import { colors, fontFamily } from '../../theme/tokens';
+import { Button } from '../../components/Button';
+import { TextField } from '../../components/TextField';
+import { AppHeader } from '../../components/AppHeader';
 
 export type MedicationFormMode = 'create' | 'edit';
 
@@ -199,14 +200,7 @@ export function MedicationFormScreen({ mode, medicationId }: MedicationFormScree
         <Text style={styles.errorText} accessibilityRole="alert" accessibilityLiveRegion="assertive">
           {loadErrorMessage}
         </Text>
-        <Pressable
-          style={styles.retryButton}
-          onPress={loadInitialData}
-          accessibilityRole="button"
-          accessibilityLabel="Reintentar"
-        >
-          <Text style={styles.retryButtonText}>Reintentar</Text>
-        </Pressable>
+        <Button label="Reintentar" onPress={loadInitialData} />
       </View>
     );
   }
@@ -219,14 +213,7 @@ export function MedicationFormScreen({ mode, medicationId }: MedicationFormScree
           Creá una familia para empezar a cargar medicamentos, o pedile a quien te invitó el
           link de invitación.
         </Text>
-        <Pressable
-          style={styles.retryButton}
-          onPress={() => router.push('/family/create')}
-          accessibilityRole="button"
-          accessibilityLabel="Crear familia"
-        >
-          <Text style={styles.retryButtonText}>Crear familia</Text>
-        </Pressable>
+        <Button label="Crear familia" onPress={() => router.push('/family/create')} />
       </View>
     );
   }
@@ -238,14 +225,10 @@ export function MedicationFormScreen({ mode, medicationId }: MedicationFormScree
         <Text style={styles.helperText}>
           Un medicamento siempre pertenece a una persona cuidada. Cargá su perfil primero.
         </Text>
-        <Pressable
-          style={styles.retryButton}
+        <Button
+          label="Cargar persona cuidada"
           onPress={() => router.push('/cared-person/new')}
-          accessibilityRole="button"
-          accessibilityLabel="Cargar persona cuidada"
-        >
-          <Text style={styles.retryButtonText}>Cargar persona cuidada</Text>
-        </Pressable>
+        />
       </View>
     );
   }
@@ -254,14 +237,7 @@ export function MedicationFormScreen({ mode, medicationId }: MedicationFormScree
     return (
       <View style={styles.centerContainer}>
         <Text style={styles.emptyTitle}>No encontramos ese medicamento.</Text>
-        <Pressable
-          style={styles.retryButton}
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel="Volver a la lista"
-        >
-          <Text style={styles.retryButtonText}>Volver</Text>
-        </Pressable>
+        <Button label="Volver" onPress={() => router.back()} accessibilityLabel="Volver a la lista" />
       </View>
     );
   }
@@ -271,51 +247,61 @@ export function MedicationFormScreen({ mode, medicationId }: MedicationFormScree
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <AppHeader
+        title={mode === 'create' ? 'Agregar medicamento' : 'Editar medicamento'}
+        onBack={() => router.back()}
+      />
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>
-          {mode === 'create' ? 'Nuevo medicamento' : 'Editar medicamento'}
-        </Text>
         <Text style={styles.disclaimer}>
           Esto no reemplaza el criterio médico. Ante dudas, consultá con el profesional de
           salud a cargo.
         </Text>
 
-        <FormField
-          label="Nombre"
-          value={name}
-          onChangeText={setName}
-          placeholder="Ej. Enalapril"
-          editable={!isSubmitting}
-          accessibilityLabel="Nombre del medicamento"
-        />
+        <View style={styles.field}>
+          <TextField
+            label="Nombre"
+            value={name}
+            onChangeText={setName}
+            placeholder="Ej. Enalapril"
+            editable={!isSubmitting}
+            accessibilityLabel="Nombre del medicamento"
+          />
+        </View>
 
-        <FormField
-          label="Dosis"
-          value={dose}
-          onChangeText={setDose}
-          placeholder="Ej. 10mg"
-          editable={!isSubmitting}
-          accessibilityLabel="Dosis del medicamento"
-        />
+        <View style={styles.field}>
+          <TextField
+            label="Dosis"
+            value={dose}
+            onChangeText={setDose}
+            placeholder="Ej. 10mg"
+            editable={!isSubmitting}
+            accessibilityLabel="Dosis del medicamento"
+          />
+        </View>
 
-        <FormField
-          label="Horario (opcional)"
-          value={schedule}
-          onChangeText={setSchedule}
-          placeholder="Ej. cada 8 horas, 08:00 y 20:00"
-          editable={!isSubmitting}
-          accessibilityLabel="Horario del medicamento"
-        />
+        <View style={styles.field}>
+          <TextField
+            label="Horario (opcional)"
+            value={schedule}
+            onChangeText={setSchedule}
+            placeholder="Ej. cada 8 horas, 08:00 y 20:00"
+            editable={!isSubmitting}
+            accessibilityLabel="Horario del medicamento"
+          />
+        </View>
 
-        <FormField
-          label="Instrucciones (opcional)"
-          value={instructions}
-          onChangeText={setInstructions}
-          placeholder="Ej. tomar con el estómago lleno"
-          editable={!isSubmitting}
-          accessibilityLabel="Instrucciones del medicamento"
-          multiline
-        />
+        <View style={styles.field}>
+          <TextField
+            label="Instrucciones (opcional)"
+            value={instructions}
+            onChangeText={setInstructions}
+            placeholder="Ej. tomar con el estómago lleno"
+            editable={!isSubmitting}
+            accessibilityLabel="Instrucciones del medicamento"
+            multiline
+            style={styles.inputMultiline}
+          />
+        </View>
 
         {submitError ? (
           <Text
@@ -327,74 +313,24 @@ export function MedicationFormScreen({ mode, medicationId }: MedicationFormScree
           </Text>
         ) : null}
 
-        <Pressable
-          style={({ pressed }) => [
-            styles.button,
-            !canSubmit && styles.buttonDisabled,
-            pressed && canSubmit && styles.buttonPressed,
-          ]}
+        <Button
+          label={mode === 'create' ? 'Guardar medicamento' : 'Guardar cambios'}
           onPress={handleSubmit}
           disabled={!canSubmit}
-          accessibilityRole="button"
-          accessibilityLabel={mode === 'create' ? 'Guardar medicamento' : 'Guardar cambios'}
-          accessibilityState={{ disabled: !canSubmit, busy: isSubmitting }}
-        >
-          {isSubmitting ? (
-            <ActivityIndicator color={colors.white} />
-          ) : (
-            <Text style={styles.buttonText}>
-              {mode === 'create' ? 'Guardar medicamento' : 'Guardar cambios'}
-            </Text>
-          )}
-        </Pressable>
+          loading={isSubmitting}
+          size="lg"
+          full
+        />
 
-        <Pressable
-          style={styles.secondaryButton}
+        <Button
+          label="Cancelar"
           onPress={() => router.back()}
           disabled={isSubmitting}
-          accessibilityRole="button"
-          accessibilityLabel="Cancelar"
-        >
-          <Text style={styles.secondaryButtonText}>Cancelar</Text>
-        </Pressable>
+          variant="ghost"
+          full
+        />
       </ScrollView>
     </KeyboardAvoidingView>
-  );
-}
-
-interface FormFieldProps {
-  label: string;
-  value: string;
-  onChangeText: (value: string) => void;
-  placeholder: string;
-  editable: boolean;
-  accessibilityLabel: string;
-  multiline?: boolean;
-}
-
-function FormField({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  editable,
-  accessibilityLabel,
-  multiline,
-}: FormFieldProps) {
-  return (
-    <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
-      <TextInput
-        style={[styles.input, multiline && styles.inputMultiline]}
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={colors.ink3}
-        editable={editable}
-        multiline={multiline}
-        accessibilityLabel={accessibilityLabel}
-      />
-    </View>
   );
 }
 
@@ -405,7 +341,7 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     backgroundColor: colors.surface,
-    padding: 24,
+    padding: 20,
     gap: 4,
   },
   centerContainer: {
@@ -416,39 +352,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     backgroundColor: colors.surface,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    fontFamily: fontFamily.bold,
-    color: colors.ink,
-    marginBottom: 4,
-  },
   disclaimer: {
     fontSize: 12,
     color: colors.ink3,
     fontFamily: fontFamily.regular,
     fontStyle: 'italic',
+    marginTop: 12,
     marginBottom: 16,
   },
   field: {
-    gap: 6,
     marginBottom: 14,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
-    color: colors.ink2,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.sm,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    fontFamily: fontFamily.regular,
-    color: colors.ink,
   },
   inputMultiline: {
     minHeight: 88,
@@ -473,49 +386,5 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.semiBold,
     color: colors.ink,
     textAlign: 'center',
-  },
-  retryButton: {
-    marginTop: 8,
-    backgroundColor: colors.brand,
-    borderRadius: radii.sm,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  retryButtonText: {
-    color: colors.white,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
-  },
-  button: {
-    backgroundColor: colors.brand,
-    borderRadius: radii.sm,
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 8,
-  },
-  buttonDisabled: {
-    backgroundColor: colors.brandMid,
-  },
-  buttonPressed: {
-    opacity: 0.85,
-  },
-  buttonText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
-  },
-  secondaryButton: {
-    marginTop: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  secondaryButtonText: {
-    color: colors.brand,
-    fontSize: 15,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
   },
 });

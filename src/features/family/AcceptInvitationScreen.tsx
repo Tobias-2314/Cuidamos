@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { getSession } from '../auth/authService';
 import { acceptFamilyInvitation } from './familyService';
-import { colors, fontFamily, radii } from '../../theme/tokens';
+import { colors, fontFamily } from '../../theme/tokens';
+import { Button } from '../../components/Button';
+import { EmptyState } from '../../components/EmptyState';
+import { IconAlert, IconCheck, IconLink } from '../../components/icons';
 
 interface AcceptInvitationScreenProps {
   token: string;
@@ -61,64 +64,45 @@ export function AcceptInvitationScreen({ token }: AcceptInvitationScreenProps) {
   if (phase === 'loading') {
     return (
       <View style={styles.centerContainer}>
+        <View style={styles.loadingBadge}>
+          <IconLink size="lg" color={colors.brand} />
+        </View>
         <ActivityIndicator />
-        <Text style={styles.helperText}>Uniéndote a la familia…</Text>
+        <Text style={styles.loadingTitle}>Verificando invitación</Text>
+        <Text style={styles.helperText}>Un momento…</Text>
       </View>
     );
   }
 
   if (phase === 'not-authenticated') {
     return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.emptyTitle}>Iniciá sesión primero.</Text>
-        <Text style={styles.helperText}>
-          Necesitás una cuenta en Cuidamos para aceptar esta invitación. Iniciá sesión y volvé a
-          abrir el link.
-        </Text>
-        <Pressable
-          style={styles.retryButton}
-          onPress={() => router.replace('/')}
-          accessibilityRole="button"
-          accessibilityLabel="Ir a iniciar sesión"
-        >
-          <Text style={styles.retryButtonText}>Ir a iniciar sesión</Text>
-        </Pressable>
-      </View>
+      <EmptyState
+        icon={<IconAlert size="lg" color={colors.brand} />}
+        title="Iniciá sesión primero."
+        desc="Necesitás una cuenta en Cuidamos para aceptar esta invitación. Iniciá sesión y volvé a abrir el link."
+        action={<Button label="Ir a iniciar sesión" onPress={() => router.replace('/')} full />}
+      />
     );
   }
 
   if (phase === 'error') {
     return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.errorText} accessibilityRole="alert" accessibilityLiveRegion="assertive">
-          {errorMessage}
-        </Text>
-        <Pressable
-          style={styles.retryButton}
-          onPress={acceptInvitation}
-          accessibilityRole="button"
-          accessibilityLabel="Reintentar"
-        >
-          <Text style={styles.retryButtonText}>Reintentar</Text>
-        </Pressable>
-      </View>
+      <EmptyState
+        icon={<IconAlert size="lg" color={colors.error} />}
+        title="Enlace inválido"
+        desc={errorMessage ?? 'Este enlace de invitación ya fue usado o expiró.'}
+        action={<Button label="Reintentar" onPress={acceptInvitation} full />}
+      />
     );
   }
 
   return (
-    <View style={styles.centerContainer}>
-      <Text style={styles.emptyTitle} accessibilityRole="alert" accessibilityLiveRegion="polite">
-        ¡Listo! Ya formás parte de la familia{role ? ` como ${role}` : ''}.
-      </Text>
-      <Pressable
-        style={styles.retryButton}
-        onPress={() => router.replace('/calendar')}
-        accessibilityRole="button"
-        accessibilityLabel="Ir al calendario"
-      >
-        <Text style={styles.retryButtonText}>Ir al calendario</Text>
-      </Pressable>
-    </View>
+    <EmptyState
+      icon={<IconCheck size="lg" color={colors.ok} />}
+      title={`¡Listo! Ya formás parte de la familia${role ? ` como ${role}` : ''}.`}
+      desc="Ya podés coordinar turnos y medicación con el resto de la familia."
+      action={<Button label="Ir al calendario" onPress={() => router.replace('/calendar')} full />}
+    />
   );
 }
 
@@ -131,36 +115,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     backgroundColor: colors.surface,
   },
+  loadingBadge: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.brandLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  loadingTitle: {
+    fontSize: 16,
+    fontFamily: fontFamily.bold,
+    fontWeight: '700',
+    color: colors.ink,
+    marginTop: 8,
+  },
   helperText: {
     fontSize: 14,
     fontFamily: fontFamily.regular,
     color: colors.ink3,
     textAlign: 'center',
-  },
-  errorText: {
-    fontSize: 15,
-    color: colors.error,
-    fontWeight: '500',
-    fontFamily: fontFamily.medium,
-    textAlign: 'center',
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
-    color: colors.ink,
-    textAlign: 'center',
-  },
-  retryButton: {
-    marginTop: 8,
-    backgroundColor: colors.brand,
-    borderRadius: radii.sm,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  retryButtonText: {
-    color: colors.white,
-    fontWeight: '600',
-    fontFamily: fontFamily.semiBold,
   },
 });

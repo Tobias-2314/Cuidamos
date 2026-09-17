@@ -64,7 +64,7 @@ enabled = true
 [auth]
 enabled = true
 site_url = "http://localhost:8081"
-additional_redirect_urls = ["exp://localhost:8081"]
+additional_redirect_urls = ["exp://localhost:8081", "cuidamos://*"]
 jwt_expiry = 3600
 enable_signup = true
 enable_anonymous_sign_ins = false
@@ -74,6 +74,14 @@ minimum_password_length = 8
 enable_signup = true
 # Desactivado en local para agilizar el desarrollo. En staging/prod-cerrado debe ir en true.
 enable_confirmations = false
+
+[auth.external.google]
+enabled = true
+client_id = "1056316000076-kft0j040ke3cacvcjt9u9kp4q761dd84.apps.googleusercontent.com"
+# El secret NUNCA va hardcodeado acá (este archivo se commitea) -- se resuelve
+# desde la variable de entorno GOOGLE_CLIENT_SECRET, definida en
+# `supabase/.env` (gitignoreado, ver .gitignore).
+secret = "env(GOOGLE_CLIENT_SECRET)"
 
 [auth.sms]
 enable_signup = false

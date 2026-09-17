@@ -1,21 +1,27 @@
 import { z } from 'zod';
 import type { AuthError, Session } from '@supabase/supabase-js';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 
 import { supabase } from '../../lib/supabase';
+import {
+  normalizeUnexpectedError as normalizeUnexpectedServiceError,
+  type ServiceError,
+  type ServiceResult,
+} from '../../lib/serviceResult';
+
+// Requisito de expo-web-browser: cierra el tab/overlay de auth en web una
+// vez que el redirect vuelve a la app. No-op en iOS/Android.
+WebBrowser.maybeCompleteAuthSession();
 
 /**
  * Normalized error shape returned by every function in this module.
  * Never carries tokens or other sensitive Supabase response data —
  * only a stable `code` and a user-facing `message`.
  */
-export interface AuthServiceError {
-  code: string;
-  message: string;
-}
+export type AuthServiceError = ServiceError;
 
-export type AuthResult<T> =
-  | { data: T; error: null }
-  | { data: null; error: AuthServiceError };
+export type AuthResult<T> = ServiceResult<T>;
 
 export interface MagicLinkOptions {
   /**
@@ -42,18 +48,8 @@ function normalizeAuthError(error: AuthError): AuthServiceError {
   };
 }
 
-function normalizeUnexpectedError(error: unknown): AuthServiceError {
-  // Never surface the raw error (it may wrap a network response or,
-  // in edge cases, sensitive request/response data). Log only a
-  // non-sensitive marker for observability.
-  if (process.env.NODE_ENV !== 'production') {
-    console.warn('[authService] unexpected error while calling Supabase Auth');
-  }
-
-  return {
-    code: 'unexpected_error',
-    message: GENERIC_ERROR_MESSAGE,
-  };
+function normalizeUnexpectedError(context: string, error: unknown): AuthServiceError {
+  return normalizeUnexpectedServiceError('authService', context, error, GENERIC_ERROR_MESSAGE);
 }
 
 /**
@@ -91,7 +87,75 @@ export async function signInWithMagicLink(
 
     return { data: { email: parsed.data }, error: null };
   } catch (err: unknown) {
-    return { data: null, error: normalizeUnexpectedError(err) };
+    return { data: null, error: normalizeUnexpectedError('signInWithMagicLink', err) };
+  }
+}
+
+/**
+ * Signs in with Google via Supabase OAuth (PKCE flow). Opens the system
+ * browser for the Google consent screen and comes back through the app's
+ * `cuidamos://` deep link -- same auto-create-on-first-login behavior as
+ * `signInWithMagicLink`, Supabase creates the account the first time a
+ * given Google account signs in.
+ *
+ * Requires the Google provider to be configured in Supabase Auth (Google
+ * Cloud OAuth client id/secret) -- returns a clear error if it isn't set up
+ * yet instead of a cryptic provider error.
+ */
+export async function signInWithGoogle(): Promise<AuthResult<{ session: Session }>> {
+  try {
+    const redirectTo = Linking.createURL('/');
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo,
+        skipBrowserRedirect: true,
+      },
+    });
+
+    if (error) {
+      return { data: null, error: normalizeAuthError(error) };
+    }
+
+    const authSessionResult = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+
+    if (authSessionResult.type !== 'success') {
+      // The user closed the browser or cancelled -- not a real error.
+      return {
+        data: null,
+        error: { code: 'oauth_cancelled', message: 'Cancelaste el inicio de sesión con Google.' },
+      };
+    }
+
+    const { queryParams } = Linking.parse(authSessionResult.url);
+    const code = typeof queryParams?.code === 'string' ? queryParams.code : null;
+    const oauthError = typeof queryParams?.error_description === 'string'
+      ? queryParams.error_description
+      : null;
+
+    if (oauthError) {
+      return { data: null, error: { code: 'oauth_error', message: GENERIC_ERROR_MESSAGE } };
+    }
+
+    if (!code) {
+      return { data: null, error: { code: 'oauth_no_code', message: GENERIC_ERROR_MESSAGE } };
+    }
+
+    const { data: sessionData, error: exchangeError } =
+      await supabase.auth.exchangeCodeForSession(code);
+
+    if (exchangeError) {
+      return { data: null, error: normalizeAuthError(exchangeError) };
+    }
+
+    if (!sessionData.session) {
+      return { data: null, error: { code: 'oauth_no_session', message: GENERIC_ERROR_MESSAGE } };
+    }
+
+    return { data: { session: sessionData.session }, error: null };
+  } catch (err: unknown) {
+    return { data: null, error: normalizeUnexpectedError('signInWithGoogle', err) };
   }
 }
 
@@ -106,7 +170,7 @@ export async function signOut(): Promise<AuthResult<null>> {
 
     return { data: null, error: null };
   } catch (err: unknown) {
-    return { data: null, error: normalizeUnexpectedError(err) };
+    return { data: null, error: normalizeUnexpectedError('signOut', err) };
   }
 }
 
@@ -121,7 +185,7 @@ export async function getSession(): Promise<AuthResult<Session | null>> {
 
     return { data: data.session, error: null };
   } catch (err: unknown) {
-    return { data: null, error: normalizeUnexpectedError(err) };
+    return { data: null, error: normalizeUnexpectedError('getSession', err) };
   }
 }
 

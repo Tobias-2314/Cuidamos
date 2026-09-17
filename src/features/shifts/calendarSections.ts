@@ -71,6 +71,18 @@ export function getWeekRange(referenceDate: Date): DateRange {
   return { from, to: addDays(from, 7) };
 }
 
+/** Los 7 días (lunes a domingo) de una semana, dado su `DateRange` (`getWeekRange`). */
+export function getWeekDays(weekRange: DateRange): Date[] {
+  return Array.from({ length: 7 }, (_, i) => addDays(weekRange.from, i));
+}
+
+/** `true` si `date` cae dentro del mismo día calendario que `other`. */
+export function isSameDay(date: Date, other: Date): boolean {
+  return dateKey(date) === dateKey(other);
+}
+
+export { WEEKDAY_LABELS_ES };
+
 /** Rango [1º del mes, 1º del mes siguiente) de `referenceDate`. */
 export function getMonthRange(referenceDate: Date): DateRange {
   const from = startOfMonth(referenceDate);

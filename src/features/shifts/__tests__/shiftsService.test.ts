@@ -1,13 +1,3 @@
-jest.mock('../../../lib/supabase', () => ({
-  supabase: {
-    auth: {
-      getUser: jest.fn(),
-    },
-    from: jest.fn(),
-    rpc: jest.fn(),
-  },
-}));
-
 import { supabase } from '../../../lib/supabase';
 import {
   createShift,
@@ -17,6 +7,16 @@ import {
   listFamilyMembersForFamily,
   reassignShift,
 } from '../shiftsService';
+
+jest.mock('../../../lib/supabase', () => ({
+  supabase: {
+    auth: {
+      getUser: jest.fn(),
+    },
+    from: jest.fn(),
+    rpc: jest.fn(),
+  },
+}));
 
 const mockedGetUser = supabase.auth.getUser as jest.Mock;
 const mockedFrom = supabase.from as jest.Mock;

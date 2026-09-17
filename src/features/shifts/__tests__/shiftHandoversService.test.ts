@@ -1,12 +1,12 @@
+import { supabase } from '../../../lib/supabase';
+import { MAX_SHIFT_HANDOVER_FIELD_LENGTH } from '../shiftHandoverValidation';
+import { createShiftHandover, getLatestShiftHandoverForFamily } from '../shiftHandoversService';
+
 jest.mock('../../../lib/supabase', () => ({
   supabase: {
     rpc: jest.fn(),
   },
 }));
-
-import { supabase } from '../../../lib/supabase';
-import { MAX_SHIFT_HANDOVER_FIELD_LENGTH } from '../shiftHandoverValidation';
-import { createShiftHandover, getLatestShiftHandoverForFamily } from '../shiftHandoversService';
 
 const mockedRpc = supabase.rpc as jest.Mock;
 
