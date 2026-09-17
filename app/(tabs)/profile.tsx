@@ -1,5 +1,5 @@
 import { CareProfileScreen } from '../../src/features/family/CareProfileScreen';
 
-export default function FamilyProfile() {
+export default function Profile() {
   return <CareProfileScreen />;
 }
