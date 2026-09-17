@@ -52,6 +52,46 @@ export const radii = {
   badge: 24,
 } as const;
 
+/**
+ * Distingue cuidadores en avatares/turnos cuando hay más de uno en la
+ * familia -- `colors.brand` queda reservado para "Vos" (convención ya
+ * establecida en toda la app), estos 5 tonos cálidos y apagados son para
+ * el resto, asignados de forma determinística por user id (ver
+ * `getCaregiverColor` en `src/lib/caregiverColor.ts`). Sin esto, cualquier
+ * pantalla con varios cuidadores (Calendario, Cobertura) los mostraba a
+ * todos con el mismo color -- una sola nota de paleta, imposible de
+ * escanear de un vistazo quién es quién.
+ */
+export const caregiverPalette = [
+  '#C87355', // terracota
+  '#5C87A8', // celeste apagado
+  '#A0698C', // ciruela
+  '#8FA05C', // salvia
+  '#C89B35', // ámbar
+] as const;
+
+/**
+ * Sombras suaves -- las `Card` del port inicial de Figma quedaban chatas
+ * (solo borde de 1px). `sm` para elementos chicos (badges, avatares
+ * flotantes), `md` para tarjetas de contenido.
+ */
+export const shadow = {
+  sm: {
+    shadowColor: '#182B29',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  md: {
+    shadowColor: '#182B29',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+} as const;
+
 export const spacing = {
   xs: 4,
   sm: 8,

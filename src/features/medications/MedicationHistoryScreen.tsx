@@ -8,6 +8,7 @@ import { getMedicationLogsForFamily, type MedicationLogEntry } from './medicatio
 import { getMedicationTakenByLabel } from './medicationTakenByLabel';
 import { getCurrentUserFamilyId } from '../shifts/shiftsService';
 import { supabase } from '../../lib/supabase';
+import { getCaregiverColor } from '../../lib/caregiverColor';
 import { colors, fontFamily, radii } from '../../theme/tokens';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
@@ -172,7 +173,11 @@ function HistoryRow({ entry, currentUserId }: HistoryRowProps) {
             <Text style={styles.medicationName}>{entry.medicationName}</Text>
           </View>
           <View style={styles.rowByRow}>
-            <Avatar name={takenByLabel} size="sm" />
+            <Avatar
+              name={takenByLabel}
+              color={getCaregiverColor(entry.takenBy, entry.takenBy === currentUserId)}
+              size="sm"
+            />
             <Text style={styles.takenBy}>{takenByLabel}</Text>
             <Text style={styles.takenAt}>· {takenAtLabel}</Text>
           </View>

@@ -15,6 +15,7 @@ import {
 import { LatestShiftHandoverCard } from './LatestShiftHandoverCard';
 import { getCurrentUserFamilyId, getShiftsForFamily, type Shift } from './shiftsService';
 import { supabase } from '../../lib/supabase';
+import { getCaregiverColor } from '../../lib/caregiverColor';
 import { colors, fontFamily, radii } from '../../theme/tokens';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
@@ -266,10 +267,11 @@ export function CalendarScreen() {
 
             {selectedDayShifts.length > 0 ? (
               <View style={styles.dayCardStack}>
-                {selectedDayShifts.map((shift) => (
+                {selectedDayShifts.map((shift, index) => (
                   <ShiftDayCard
                     key={shift.id}
                     shift={shift}
+                    index={index}
                     currentUserId={currentUserId}
                     onReassignPress={() => router.push(`/shifts/${shift.id}/reassign`)}
                     onHandoverPress={() => router.push(`/shifts/${shift.id}/handover`)}
@@ -363,19 +365,21 @@ function DayPill({ date, isSelected, hasShift, onPress }: DayPillProps) {
 
 interface ShiftDayCardProps {
   shift: Shift;
+  index?: number;
   currentUserId: string | null;
   onReassignPress: () => void;
   onHandoverPress: () => void;
 }
 
 /** Tarjeta del turno del día seleccionado -- calco de la `Card` de datos del Figma. */
-function ShiftDayCard({ shift, currentUserId, onReassignPress, onHandoverPress }: ShiftDayCardProps) {
+function ShiftDayCard({ shift, index, currentUserId, onReassignPress, onHandoverPress }: ShiftDayCardProps) {
   const assigneeLabel = getAssignedToLabel(shift.assignedTo, currentUserId);
+  const avatarColor = getCaregiverColor(shift.assignedTo, shift.assignedTo === currentUserId);
 
   return (
-    <Card style={styles.dayCard}>
+    <Card style={styles.dayCard} index={index}>
       <View style={styles.dayCardHeader}>
-        <Avatar name={assigneeLabel} />
+        <Avatar name={assigneeLabel} color={avatarColor} />
         <View style={styles.dayCardHeaderText}>
           <Text style={styles.dayCardName}>{assigneeLabel}</Text>
           {shift.caredPersonName ? (
@@ -420,8 +424,22 @@ function WeekListRow({ date, dayShifts, currentUserId, onPress }: WeekListRowPro
       <Text style={styles.weekRowDay}>{weekdayAbbrev}</Text>
       {firstShift ? (
         <>
-          <View style={styles.weekRowDot} />
-          <Avatar name={getAssignedToLabel(firstShift.assignedTo, currentUserId)} size="sm" />
+          <View
+            style={[
+              styles.weekRowDot,
+              {
+                backgroundColor: getCaregiverColor(
+                  firstShift.assignedTo,
+                  firstShift.assignedTo === currentUserId
+                ),
+              },
+            ]}
+          />
+          <Avatar
+            name={getAssignedToLabel(firstShift.assignedTo, currentUserId)}
+            color={getCaregiverColor(firstShift.assignedTo, firstShift.assignedTo === currentUserId)}
+            size="sm"
+          />
           <Text style={styles.weekRowName} numberOfLines={1}>
             {getAssignedToLabel(firstShift.assignedTo, currentUserId)}
           </Text>
@@ -462,10 +480,13 @@ function MonthlyShiftsList({ shifts, currentUserId, router }: MonthlyShiftsListP
 
   return (
     <View style={styles.dayCardStack}>
-      {sorted.map((shift) => (
-        <Card key={shift.id} style={styles.dayCard}>
+      {sorted.map((shift, index) => (
+        <Card key={shift.id} style={styles.dayCard} index={index}>
           <View style={styles.dayCardHeader}>
-            <Avatar name={getAssignedToLabel(shift.assignedTo, currentUserId)} />
+            <Avatar
+              name={getAssignedToLabel(shift.assignedTo, currentUserId)}
+              color={getCaregiverColor(shift.assignedTo, shift.assignedTo === currentUserId)}
+            />
             <View style={styles.dayCardHeaderText}>
               <Text style={styles.dayCardName}>
                 {getAssignedToLabel(shift.assignedTo, currentUserId)}

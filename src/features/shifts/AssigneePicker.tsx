@@ -3,6 +3,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, fontFamily, radii } from '../../theme/tokens';
 import { getAssignedToLabel } from './assignedToLabel';
 import type { FamilyMember } from './shiftsService';
+import { Avatar } from '../../components/Avatar';
+import { getCaregiverColor } from '../../lib/caregiverColor';
 
 interface AssigneePickerProps {
   members: readonly FamilyMember[];
@@ -40,6 +42,7 @@ export function AssigneePicker({
     <View accessibilityRole="radiogroup" style={styles.container}>
       {members.map((member) => {
         const selected = member.userId === selectedUserId;
+        const isCurrentUser = member.userId === currentUserId;
         const label = getAssignedToLabel(member.userId, currentUserId);
         const roleLabel = member.role === 'admin' ? 'Admin' : 'Cuidador';
 
@@ -53,12 +56,15 @@ export function AssigneePicker({
             accessibilityLabel={`Asignar a ${label}, ${roleLabel}`}
             style={[styles.option, selected && styles.optionSelected]}
           >
-            <Text style={[styles.optionLabel, selected && styles.optionLabelSelected]}>
-              {label}
-            </Text>
-            <Text style={[styles.optionRole, selected && styles.optionRoleSelected]}>
-              {roleLabel}
-            </Text>
+            <Avatar name={label} color={getCaregiverColor(member.userId, isCurrentUser)} size="sm" />
+            <View style={styles.optionText}>
+              <Text style={[styles.optionLabel, selected && styles.optionLabelSelected]}>
+                {label}
+              </Text>
+              <Text style={[styles.optionRole, selected && styles.optionRoleSelected]}>
+                {roleLabel}
+              </Text>
+            </View>
           </Pressable>
         );
       })}
@@ -72,17 +78,21 @@ const styles = StyleSheet.create({
   },
   option: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 12,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: radii.sm,
+    borderRadius: radii.card,
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
   optionSelected: {
     borderColor: colors.brand,
     backgroundColor: colors.brandLight,
+  },
+  optionText: {
+    flex: 1,
+    gap: 2,
   },
   optionLabel: {
     fontSize: 15,

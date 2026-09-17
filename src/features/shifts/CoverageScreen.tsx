@@ -12,6 +12,7 @@ import {
   type FamilyMember,
 } from './shiftsService';
 import { supabase } from '../../lib/supabase';
+import { getCaregiverColor } from '../../lib/caregiverColor';
 import { colors, fontFamily } from '../../theme/tokens';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
@@ -178,8 +179,14 @@ export function CoverageScreen() {
 
         {phase === 'ready' && stats.length > 0 ? (
           <ScrollView contentContainerStyle={styles.listContent}>
-            {stats.map((stat) => (
-              <CoverageRow key={stat.userId} stat={stat} allStats={stats} currentUserId={currentUserId} />
+            {stats.map((stat, index) => (
+              <CoverageRow
+                key={stat.userId}
+                stat={stat}
+                index={index}
+                allStats={stats}
+                currentUserId={currentUserId}
+              />
             ))}
           </ScrollView>
         ) : null}
@@ -190,6 +197,7 @@ export function CoverageScreen() {
 
 interface CoverageRowProps {
   stat: CoverageStat;
+  index?: number;
   allStats: readonly CoverageStat[];
   currentUserId: string | null;
 }
@@ -202,16 +210,18 @@ function formatHours(hours: number): string {
   return `${rounded}h`;
 }
 
-function CoverageRow({ stat, allStats, currentUserId }: CoverageRowProps) {
+function CoverageRow({ stat, index, allStats, currentUserId }: CoverageRowProps) {
+  const isCurrentUser = stat.userId === currentUserId;
   const label = getAssignedToLabel(stat.userId, currentUserId);
   const shiftsLabel = stat.shiftCount === 1 ? '1 turno' : `${stat.shiftCount} turnos`;
   const barWidthPercent = coverageBarWidthPercent(stat, allStats);
   const summary = `${label}: ${formatHours(stat.totalHours)} cubiertas en ${shiftsLabel}`;
+  const caregiverColor = getCaregiverColor(stat.userId, isCurrentUser);
 
   return (
-    <Card style={styles.row}>
+    <Card style={styles.row} index={index}>
       <View style={styles.rowHeader}>
-        <Avatar name={label} size="sm" />
+        <Avatar name={label} color={caregiverColor} size="sm" />
         <View style={styles.rowHeaderText} accessible accessibilityLabel={summary}>
           <Text style={styles.rowLabel}>{label}</Text>
           <Text style={styles.rowStats}>
@@ -220,7 +230,9 @@ function CoverageRow({ stat, allStats, currentUserId }: CoverageRowProps) {
         </View>
       </View>
       <View style={styles.barTrack}>
-        <View style={[styles.barFill, { width: `${barWidthPercent}%` }]} />
+        <View
+          style={[styles.barFill, { width: `${barWidthPercent}%`, backgroundColor: caregiverColor }]}
+        />
       </View>
     </Card>
   );
