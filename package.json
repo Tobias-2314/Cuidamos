@@ -36,6 +36,7 @@
     "test:medications-never-logged": "supabase db query --local -f supabase/tests/medications_never_logged.test.sql",
     "test:shift-handovers-rpc": "supabase db query --local -f supabase/tests/shift_handovers_rpc.test.sql",
     "test:profiles": "supabase db query --local -f supabase/tests/profiles.test.sql",
+    "test:families-creation": "supabase db query --local -f supabase/tests/families_creation.test.sql",
     "build:dev": "eas build --profile development --platform android",
     "build:preview": "eas build --profile preview --platform android",
     "build:prod": "eas build --profile production --platform android"
