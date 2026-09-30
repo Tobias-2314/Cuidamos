@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//home/tobias/ECC/**)",
+      "Bash(node scripts/install-apply.js --target claude --enable-hooks typescript)"
+    ]
+  }
+}
